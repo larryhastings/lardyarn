@@ -50,13 +50,21 @@ stick = joystick.Joystick(0)
 stick.init()
 axes = stick.get_numaxes()
 print("joystick AXES", axes)
-use_right_stick = axes > 2
+use_left_stick = axes >= 2
+use_right_stick = axes >= 5
 
 buttons = stick.get_numbuttons()
 print("joystick BUTTONS", buttons)
+use_face_buttons = buttons >= 4
 
 hats = stick.get_numhats()
 print("joystick HATS", hats)
+use_hat = hats >= 1
+
+print("use left stick?", use_left_stick)
+print("use right stick?", use_right_stick)
+print("use hat?", use_hat)
+print("use face buttons for shield?", use_face_buttons)
 
 
 shield_buttons = {
@@ -84,23 +92,25 @@ def move_winky():
     keys = get_pressed()
     if keys[K_ESCAPE]:
         sys.exit("quittin' time!")
+
     direction = Vector2()
     for key, vector in movement_keys.items():
         if keys[key]:
             direction += vector
-    stick_x = stick.get_axis(0)
-    stick_y = stick.get_axis(1)
-    if stick_x or stick_y:
-        stick_vector = Vector2(stick_x, stick_y)
-        stick_vector = stick_vector.normalize()
-        direction += stick_vector
 
-    if hats:
+    if use_left_stick:
+        stick_x = stick.get_axis(0)
+        stick_y = stick.get_axis(1)
+        if stick_x or stick_y:
+            stick_vector = Vector2(stick_x, stick_y)
+            stick_vector = stick_vector.normalize()
+            direction += stick_vector
+
+    if use_hat:
         x, y = stick.get_hat(0)
         if x or y:
             hat_vector = Vector2(x, -y)
             direction += hat_vector
-
 
     if direction or movement:
         movement = movement * air_resistance
@@ -149,12 +159,13 @@ def move_winky():
     #         pressed.add(i)
     # if pressed:
     #     print(pressed)
-    direction = Vector2()
-    for button, vector in shield_buttons.items():
-        if stick.get_button(button):
-            direction += vector
-    if direction:
-        update_shield("buttons", direction)
+    if use_face_buttons:
+        direction = Vector2()
+        for button, vector in shield_buttons.items():
+            if stick.get_button(button):
+                direction += vector
+        if direction:
+            update_shield("buttons", direction)
 
 
 
