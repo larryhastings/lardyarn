@@ -269,7 +269,7 @@ class Shot(BadGuy):
         self.after = time + self.lifetime
 
     def update(self, dt):
-        if time > self.lifetime:
+        if time > self.after:
             self.remove()
             return
         self.move_towards_player()
