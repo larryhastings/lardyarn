@@ -39,6 +39,7 @@ class Skeleton:
             pos=pos,
             angle=angle
         )
+        self.body_animate = None
         self.head = scene.layers[0].add_sprite(
             'skeleton-head',
             pos=pos,
@@ -51,6 +52,14 @@ class Skeleton:
         self.gait_step = random.uniform(1.07, 1.2)
 
     SPEED = 30
+
+    @property
+    def pos(self):
+        return Vector2(*self.head.pos)
+
+    @pos.setter
+    def pos(self, v):
+        self.head.pos = self.body.pos = v
 
     def update(self, dt):
         to_target = Vector2(*self.target.pos - self.head.pos)
@@ -67,9 +76,15 @@ class Skeleton:
             self.head.scale = self.bob
             self.body.scale = 1 + 0.5 * (self.bob - 1.0)
 
-        animate(
+        self.body_animate = animate(
             self.body, duration=0.3, angle=angle_to_target
         )
+
+    def delete(self):
+        self.head.delete()
+        self.body.delete()
+        if self.body_animate:
+            self.body_animate.stop()
 
 
 @dataclass
@@ -160,14 +175,65 @@ def spawn_mobs(num):
 spawn_mobs(20)
 
 
+def line_segment_intersects_circle(start, along, center, radius):
+    Q = center                  # Centre of circle
+    r = radius                  # Radius of circle
+    P1 = start      # Start of line segment
+    V = along
+    a = np.dot(V, V)
+    b = 2 * np.dot(V, P1 - Q)
+    c = np.dot(P1, P1) + np.dot(Q, Q) - 2 * np.dot(P1, Q) - r * r
+    disc = b * b - 4 * a * c
+    if disc < 0:
+        return None
+    sqrt_disc = math.sqrt(disc)
+    t1 = (-b + sqrt_disc) / (2 * a)
+    t2 = (-b - sqrt_disc) / (2 * a)
+    if not (0 <= t1 <= 1 or 0 <= t2 <= 1):
+        return None
+    t = max(0, min(1, - b / (2 * a)))
+    return P1 + t * V
+
+
 @event
 def update(dt, keyboard):
     for controller in controllers:
         controller.update()
     for pc in pcs:
         pc.update(dt)
+
+    for pc in pcs:
+        if not pc.sword.attack:
+            continue
+
+        pos = pc.pos
+        sword = pc.sword.angle
+        dir = Vector2(np.cos(sword), np.sin(sword))
+        start = pos + dir * 12
+
+        new_mobs = []
+        for mob in mobs:
+            if line_segment_intersects_circle(start, dir * 40, mob.pos, 20) is not None:
+                mob.delete()
+            else:
+                new_mobs.append(mob)
+        mobs[:] = new_mobs
+
     for mob in mobs:
         mob.update(dt)
+
+    # Push actors apart. This is O(n^2)
+    actors = pcs + mobs
+    for i, mob1 in enumerate(actors):
+        p1 = mob1.pos
+        for mob2 in actors[i + 1:]:
+            p2 = mob2.pos
+            sep = Vector2(*p2 - p1)
+            if sep.magnitude_squared() < 625:
+                sep.normalize_ip()
+                mob1.pos = p1 - sep
+                mob2.pos = p2 + sep
+
 
 
 SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT

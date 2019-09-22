@@ -97,6 +97,7 @@ class Knight:
             radius=25,
             angle=1,
         )
+        self.sword.attack = False
 
         self.pos = Vector2(scene.width, scene.height) * 0.5
         self.v = Vector2()
@@ -147,6 +148,7 @@ class Knight:
 
     def _start_attack(self):
         """Initiate the attack."""
+        self.sword.attack = True
         animate(self.shield, duration=0.08, angle=-1.3)
         animate(
             self.sword,
@@ -154,10 +156,15 @@ class Knight:
             tween='accel_decel',
             angle=-1.5,
             radius=30,
-            on_finished=self.normal_stance
+            on_finished=self._end_attack
         )
 
+    def _end_attack(self):
+        self.sword.attack = False
+        self.normal_stance()
+
     def _start_charge(self):
+        self.sword.attack = True
         clock.each_tick(self._charge)
         self.charge_t = 0
 
@@ -171,6 +178,7 @@ class Knight:
                 x < 30 or x > self.scene.width - 30 or \
                 y < 30 or y > self.scene.height - 30:
             clock.unschedule(self._charge)
+            self.sword.attack = False
             self.can_act.unlock()
             self.can_move.unlock()
 
@@ -178,14 +186,6 @@ class Knight:
         """Return the knight to his rest pose."""
         animate(self.shield, duration=0.3, angle=-1, radius=12)
         animate(self.sword, 'accel_decel', duration=0.3, angle=1, radius=25)
-
-    def block_attack(self, duration=0.1):
-        """Disable attack for at least as long as duration."""
-        self.can_attack = False
-        clock.schedule_unique(self._enable_attack, duration)
-
-    def _enable_attack(self):
-        self.can_attack = True
 
     # Acceleration of the knight in pixels/s^2
     ACCELERATION = 650
