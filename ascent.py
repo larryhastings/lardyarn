@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 import numpy as np
 import math
-from wasabi2d import Scene, event, run, Vector2, keyboard
+from wasabi2d import Scene, event, run, Vector2, keys
+from wasabi2d.keyboard import keyboard
 from pygame import joystick
 from knight import Knight
 
@@ -32,19 +33,27 @@ class JoyController:
     pc: Knight
     stick: joystick.Joystick
 
+    # buttons to map into what inputs
+    BUTTON_MAP = [5]
+
     def __post_init__(self):
         self.stick.init()
+        self.buttons = range(self.stick.get_numbuttons())
 
     def update(self):
         self.pc.accelerate((
             self.stick.get_axis(0),
             self.stick.get_axis(1),
         ))
+        inputs = tuple(self.stick.get_button(k) for k in self.BUTTON_MAP)
+        knight.set_inputs(inputs)
 
 
 @dataclass
 class KeyboardController:
     pc: Knight
+
+    KEY_MAP = [keys.Z]
 
     def update(self):
         ax = ay = 0
@@ -59,6 +68,12 @@ class KeyboardController:
             ay = 1
 
         knight.accelerate((ax, ay))
+        inputs = tuple(keyboard[k] for k in self.KEY_MAP)
+        knight.set_inputs(inputs)
+
+
+assert len(KeyboardController.KEY_MAP) == len(JoyController.BUTTON_MAP), \
+        "Mismatch on number of inputs for controller types."
 
 
 if joystick.get_count() > 0:
