@@ -1,9 +1,12 @@
 from dataclasses import dataclass
-import numpy as np
 import math
+
+import numpy as np
 from wasabi2d import Scene, event, run, Vector2, keys
 from wasabi2d.keyboard import keyboard
+import pygame
 from pygame import joystick
+
 from knight import Knight
 
 
@@ -86,6 +89,19 @@ else:
 def update(dt, keyboard):
     controller.update()
     knight.update(dt)
+
+
+SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
+
+
+@event
+def on_key_down(key, mod):
+    if key == key.F12:
+        if mod & SHIFT:
+            scene.toggle_recording()
+        else:
+            scene.screenshot()
+
 
 
 run()
