@@ -11,7 +11,7 @@ class Knight:
 
     def __init__(self):
         self.shield = scene.layers[0].add_sprite('shield')
-        self.sword = scene.layers[0].add_sprite('sword')
+        self.sword = scene.layers[0].add_sprite('sword', angle=4)
         self.rhand = scene.layers[0].add_sprite('rhand')
         self.knight = scene.layers[0].add_sprite('knight')
 
@@ -25,11 +25,13 @@ class Knight:
         self.accel += Vector2(v)
 
     # Acceleration of the knight in pixels/s^2
-    ACCELERATION = 400
+    ACCELERATION = 600
+    # Rate the knight is slowed, fraction of speed/s
+    DRAG = 0.01
 
     def update(self, dt):
         """Update the knight this frame."""
-        self.v *= 0.1 ** dt   # drag
+        self.v *= self.DRAG ** dt   # drag
 
         if self.accel:
             # New acceleration this frame
@@ -41,6 +43,7 @@ class Knight:
 
         self.pos += knight.v * dt
         self.knight.pos = self.pos
+        self.sword.pos = self.pos + Vector2(-60, -60)
         self._update_shield()
         self.accel *= 0.0
 
