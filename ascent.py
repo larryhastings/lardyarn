@@ -12,9 +12,23 @@ from knight import Knight
 
 
 scene = Scene(title="Ascent - PyWeek 28")
-scene.layers[0].set_effect('bloom', radius=10)
+scene.background = (0.2, 0.2, 0.2)
+scene.layers[0].set_effect(
+    'dropshadow',
+    radius=2,
+    offset=(1.5, 1.5)
+)
+scene.layers[0].set_effect(
+    'dropshadow',
+    radius=3,
+    offset=(3, 3)
+)
+scene.layers[1].set_effect(
+    'bloom',
+    radius=10,
+)
 
-smoke = scene.layers[-1].add_particle_group(
+smoke = scene.layers[0].add_particle_group(
     texture='smoke',
     grow=0.1,
     max_age=0.8,
@@ -27,20 +41,20 @@ scene.smoke = smoke
 
 bones = scene.layers[-1].add_particle_group(
     texture='bone',
-    max_age=2,
-    grow=0.8,
-    drag=0.2,
+    max_age=4,
+    drag=0.1,
+    spin_drag=0.4,
 )
 skulls = scene.layers[-1].add_particle_group(
     texture='skull',
-    max_age=2,
-    grow=0.8,
-    drag=0.2,
+    max_age=4,
+    drag=0.1,
+    spin_drag=0.4,
 )
 for pgroup in (bones, skulls):
     pgroup.add_color_stop(0, '#bbbbbbff')
     pgroup.add_color_stop(1, '#bbbbbbff')
-    pgroup.add_color_stop(2, '#bbbbbb00')
+    pgroup.add_color_stop(4, '#bbbbbb00')
 
 
 joystick.init()
@@ -239,6 +253,7 @@ def update(dt, keyboard):
                     spin_spread=3,
                     size=6,
                     size_spread=1,
+                    angle_spread=6,
                 )
                 skulls.emit(
                     1,

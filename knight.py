@@ -77,7 +77,7 @@ class Knight:
     def __init__(self, scene, color=(1, 1, 1, 1)):
         self.scene = scene
         shield_sprite = scene.layers[0].add_sprite('shield')
-        sword_sprite = scene.layers[0].add_sprite('sword-gripped')
+        sword_sprite = scene.layers[1].add_sprite('sword-gripped')
         sword_sprite.color = (1.4, 1.4, 1.4, 1)
         self.knight = scene.layers[0].add_sprite('knight')
         self.head = scene.layers[0].add_sprite('knight-head')
@@ -239,6 +239,8 @@ class Knight:
                 vel=self.v * 0.3,
                 spin_spread=1,
                 size=7,
+                angle=self.knight.angle,
+                angle_spread=3,
             )
 
     # Smoke in particles per pixel
