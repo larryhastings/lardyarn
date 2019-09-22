@@ -46,7 +46,9 @@ class Skeleton:
         )
 
         self.target = random.choice(pcs)
-        self.step = random.uniform(0, 20)
+        self.bob = 1.0
+        self.gait_speed = random.uniform(0.3, 0.5)
+        self.gait_step = random.uniform(1.07, 1.2)
 
     SPEED = 30
 
@@ -57,12 +59,12 @@ class Skeleton:
         self.head.angle = angle_to_target
 
         if dist > 30:
-            move = to_target.normalize() * self.SPEED * dt
-            self.step += self.SPEED * dt
-            self.head.pos += move
+            self.head.pos += to_target.normalize() * self.SPEED * dt
             self.body.pos = self.head.pos
-            bob = 1 + 0.1 * (self.step % 20) / 20
-            self.head.scale = self.body.scale = bob
+            self.bob += self.gait_speed * dt
+            if self.bob > self.gait_step:
+                self.bob = 1.0
+            self.head.scale = self.body.scale = self.bob
 
         animate(
             self.body, duration=0.3, angle=angle_to_target
