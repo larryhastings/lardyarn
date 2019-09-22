@@ -109,9 +109,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="2.8284271"
-     inkscape:cx="379.75718"
-     inkscape:cy="549.29765"
+     inkscape:zoom="1"
+     inkscape:cx="183.72013"
+     inkscape:cy="486.43169"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -139,8 +139,8 @@
     <g
        id="g4202"
        inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/knight.png"
-       inkscape:export-xdpi="90.574821"
-       inkscape:export-ydpi="90.574821"
+       inkscape:export-xdpi="30"
+       inkscape:export-ydpi="30"
        transform="matrix(0,1,-1,0,556.52217,342.77217)">
       <rect
          y="376.86221"
@@ -176,8 +176,8 @@
     <g
        id="g4298"
        inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/shield.png"
-       inkscape:export-xdpi="90.574821"
-       inkscape:export-ydpi="90.574821"
+       inkscape:export-xdpi="30"
+       inkscape:export-ydpi="30"
        transform="matrix(0,1,-1,0,507.97825,302.96314)">
       <ellipse
          ry="4.0625"
@@ -327,8 +327,8 @@
     <g
        id="g4399"
        inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/sword-gripped.png"
-       inkscape:export-xdpi="90.574821"
-       inkscape:export-ydpi="90.574821">
+       inkscape:export-xdpi="30"
+       inkscape:export-ydpi="30">
       <use
          height="100%"
          width="100%"
@@ -371,8 +371,8 @@
        transform="matrix(0,1,-1,0,601.73259,341.19469)"
        id="g4405"
        inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/knight-head.png"
-       inkscape:export-xdpi="90.574821"
-       inkscape:export-ydpi="90.574821">
+       inkscape:export-xdpi="30"
+       inkscape:export-ydpi="30">
       <path
          style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#b3b3b3;fill-opacity:1;fill-rule:evenodd;stroke:#808080;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
          d="m 195.93299,387.04597 c 0,7.96683 -6.44193,14.42522 -14.38846,14.42522 -7.94653,0 -14.38846,-6.45839 -14.38846,-14.42522 0,-7.96683 9.0441,-17.80134 14.38846,-17.80134 5.95664,0 14.38846,9.83451 14.38846,17.80134 z"
@@ -389,8 +389,8 @@
     <g
        id="g4590"
        inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/skeleton-body.png"
-       inkscape:export-xdpi="90.574821"
-       inkscape:export-ydpi="90.574821"
+       inkscape:export-xdpi="29.621693"
+       inkscape:export-ydpi="29.621693"
        transform="matrix(0,-1.4035367,1.4038593,0,-381.66892,1135.4076)">
       <g
          id="g4559"
@@ -496,8 +496,8 @@
        id="g4570"
        transform="matrix(0,-1.4035367,1.4038593,0,-379.54641,1007.7248)"
        inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/skeleton-head.png"
-       inkscape:export-xdpi="90.574821"
-       inkscape:export-ydpi="90.574821">
+       inkscape:export-xdpi="29.43684"
+       inkscape:export-ydpi="29.43684">
       <g
          transform="matrix(0.76429774,0,0,1,89.541668,1.625)"
          id="g4507">

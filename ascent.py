@@ -16,13 +16,13 @@ scene.layers[0].set_effect('bloom', radius=10)
 
 smoke = scene.layers[-1].add_particle_group(
     texture='smoke',
-    grow=0.2,
-    max_age=1.3,
+    grow=0.1,
+    max_age=0.8,
     drag=0.1,
 )
 smoke.add_color_stop(0, '#888888ff')
 smoke.add_color_stop(0.6, '#888888ff')
-smoke.add_color_stop(1.3, '#88888800')
+smoke.add_color_stop(0.8, '#88888800')
 scene.smoke = smoke
 
 
@@ -58,13 +58,14 @@ class Skeleton:
         angle_to_target = math.radians(angle_deg)
         self.head.angle = angle_to_target
 
-        if dist > 60:
+        if dist > 30:
             self.head.pos += to_target.normalize() * self.SPEED * dt
             self.body.pos = self.head.pos
             self.bob += self.gait_speed * dt
             if self.bob > self.gait_step:
                 self.bob = 1.0
-            self.head.scale = self.body.scale = self.bob
+            self.head.scale = self.bob
+            self.body.scale = 1 + 0.5 * (self.bob - 1.0)
 
         animate(
             self.body, duration=0.3, angle=angle_to_target

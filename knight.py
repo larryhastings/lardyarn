@@ -78,6 +78,7 @@ class Knight:
         self.scene = scene
         shield_sprite = scene.layers[0].add_sprite('shield')
         sword_sprite = scene.layers[0].add_sprite('sword-gripped')
+        sword_sprite.color = (1.4, 1.4, 1.4, 1)
         self.knight = scene.layers[0].add_sprite('knight')
         self.head = scene.layers[0].add_sprite('knight-head')
 
@@ -87,13 +88,13 @@ class Knight:
         self.shield = Hand(
             sprite=shield_sprite,
             knight=self,
-            radius=40,
+            radius=12,
             angle=-1.5,
         )
         self.sword = Hand(
             sprite=sword_sprite,
             knight=self,
-            radius=85,
+            radius=25,
             angle=1,
         )
 
@@ -124,13 +125,13 @@ class Knight:
 
         if defend:
             self.can_act.lock(0.3)
-            animate(self.shield, duration=0.1, angle=-0.2, radius=25)
-            animate(self.sword, duration=0.3, angle=1.3, radius=85)
+            animate(self.shield, duration=0.1, angle=-0.2, radius=8)
+            animate(self.sword, duration=0.3, angle=1.3, radius=25)
         elif charge:
             self.can_move.lock(1.8)
             self.can_act.lock(1.8)
-            animate(self.shield, duration=0.1, angle=0, radius=30)
-            animate(self.sword, duration=0.1, angle=0, radius=75)
+            animate(self.shield, duration=0.1, angle=0, radius=10)
+            animate(self.sword, duration=0.1, angle=0, radius=20)
             clock.schedule(self._start_charge, 0.3)
         elif attack:
             self.can_act.lock(0.5)
@@ -152,7 +153,7 @@ class Knight:
             duration=0.15,
             tween='accel_decel',
             angle=-1.5,
-            radius=100,
+            radius=30,
             on_finished=self.normal_stance
         )
 
@@ -175,8 +176,8 @@ class Knight:
 
     def normal_stance(self):
         """Return the knight to his rest pose."""
-        animate(self.shield, duration=0.3, angle=-1, radius=40)
-        animate(self.sword, 'accel_decel', duration=0.3, angle=1, radius=85)
+        animate(self.shield, duration=0.3, angle=-1, radius=12)
+        animate(self.sword, 'accel_decel', duration=0.3, angle=1, radius=25)
 
     def block_attack(self, duration=0.1):
         """Disable attack for at least as long as duration."""
@@ -187,7 +188,7 @@ class Knight:
         self.can_attack = True
 
     # Acceleration of the knight in pixels/s^2
-    ACCELERATION = 900
+    ACCELERATION = 650
     # Rate the knight is slowed, fraction of speed/s
     DRAG = 0.01
 
@@ -214,10 +215,10 @@ class Knight:
         self.step += dv
 
         # Scale the knight to simulate gait
-        bob = 1.05 + 0.05 * np.sin(self.step / 500)
+        bob = 1.1 + 0.1 * np.sin(self.step / 500)
         self.knight.scale = self.head.scale = bob
 
-        sz = Vector2(30, 30)
+        sz = Vector2(10, 10)
         self.pos = np.clip(
             self.pos + self.v * dt,
             sz,
@@ -234,14 +235,14 @@ class Knight:
             self.scene.smoke.emit(
                 num=np.random.poisson(self.v.length() * self.SMOKE_RATE * dt),
                 pos=stern,
-                pos_spread=4,
+                pos_spread=2,
                 vel=self.v * 0.3,
                 spin_spread=1,
-                size=20,
+                size=7,
             )
 
     # Smoke in particles per pixel
-    SMOKE_RATE = 0.03
+    SMOKE_RATE = 0.07
 
     def delete(self):
         """Remove the knight from the scene."""
