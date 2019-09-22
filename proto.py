@@ -36,7 +36,14 @@ movement_keys = {
     K_d: Vector2(+1, +0),
 }
 
-print(movement_keys)
+
+shield_keys = {
+    K_i: Vector2(+0, -1),
+    K_k: Vector2(+0, +1),
+    K_j: Vector2(-1, +0),
+    K_l: Vector2(+1, +0),
+}
+
 
 joystick.init()
 stick = joystick.Joystick(0)
@@ -80,7 +87,10 @@ def move_winky():
         circle.pos += movement
         sword_and_shield.pos = circle.pos
 
-    def update_shield(angle):
+    def update_shield(source, vector):
+        polar = vector.as_polar()
+        print(source, vector, polar)
+        angle = polar[1]
         # hooray, wasabi2d uses radians and pygame uses degrees
         angle = (angle * math.tau) / 360
         if abs(sword_and_shield.angle - angle) <= max_shield_delta:
@@ -92,19 +102,20 @@ def move_winky():
 
     mouse_movement = pygame.mouse.get_rel()
     if mouse_movement[0] or mouse_movement[1]:
-        mouse_vector = Vector2(mouse_movement)
-        mouse_polar = mouse_vector.as_polar()
-        print("mouse", mouse_vector, mouse_polar)
-        update_shield(mouse_polar[1])
+        update_shield("mouse", Vector2(mouse_movement))
+
+    direction = Vector2()
+    for key, vector in shield_keys.items():
+        if keys[key]:
+            direction += vector
+    if direction:
+        update_shield("keyboard", direction)
 
     stick_rx = stick.get_axis(3)
     stick_ry = stick.get_axis(4)
     # print(stick.get_axis(2), stick.get_axis(3), stick.get_axis(4), stick.get_axis(5))
     if stick_rx or stick_ry:
-        joy_vector = Vector2(stick_rx, stick_ry)
-        joy_polar = joy_vector.as_polar()
-        print("joy", joy_vector, joy_polar)
-        update_shield(joy_polar[1])
+        update_shield("joystick", Vector2(stick_rx, stick_ry))
 
 
 print("AXES", stick.get_numaxes())
