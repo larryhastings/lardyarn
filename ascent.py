@@ -37,7 +37,7 @@ class JoyController:
     stick: joystick.Joystick
 
     # buttons to map into what inputs
-    BUTTON_MAP = [5, 1]
+    BUTTON_MAP = [5, 1, 0]
 
     def __post_init__(self):
         self.stick.init()
@@ -56,7 +56,7 @@ class JoyController:
 class KeyboardController:
     pc: Knight
 
-    KEY_MAP = [keys.Z, keys.X]
+    KEY_MAP = [keys.Z, keys.X, keys.C]
 
     def update(self):
         ax = ay = 0

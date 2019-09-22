@@ -44,10 +44,10 @@ class Hand:
         k = self.knight.knight
         a = self.sprite.angle = k.angle + self._angle
 
-        c = np.sin(a)
-        s = np.cos(a)
+        s = np.sin(a)
+        c = np.cos(a)
 
-        self.sprite.pos = k.pos + np.array([s, c]) * self.radius
+        self.sprite.pos = k.pos + np.array([c, s]) * self.radius
 
 
 @dataclass
@@ -58,6 +58,10 @@ class Lockout:
         """Disable attack for at least as long as duration."""
         self.state = False
         clock.schedule_unique(self._enable, duration)
+
+    def unlock(self):
+        self.state = True
+        clock.unschedule(self._enable)
 
     def __bool__(self):
         return self.state
@@ -92,21 +96,25 @@ class Knight:
 
         self.pos = Vector2(scene.width, scene.height) * 0.5
         self.v = Vector2()
-        self.accel = Vector2()
+        self.accel = Vector2()  # direction of the acceleration
 
         # The distance the knight has travelled; this is used in
         # calculating his gait
         self.step = 0
 
         self.can_act = Lockout()
+        self.can_move = Lockout()
 
     def accelerate(self, v):
-        self.accel += Vector2(v)
+        if self.can_move:
+            self.accel += Vector2(v)
+            if self.accel.length_squared() > 1:
+                self.accel.normalize_ip()
 
     def set_inputs(self, inputs):
         """Pass information from the controller."""
 
-        defend, attack = inputs
+        defend, attack, charge = inputs
 
         if not self.can_act:
             return
@@ -115,6 +123,12 @@ class Knight:
             self.can_act.lock(0.3)
             animate(self.shield, duration=0.1, angle=-0.2, radius=25)
             animate(self.sword, duration=0.3, angle=1.3, radius=85)
+        elif charge:
+            self.can_move.lock(1.8)
+            self.can_act.lock(1.8)
+            animate(self.shield, duration=0.1, angle=0, radius=30)
+            animate(self.sword, duration=0.1, angle=0, radius=75)
+            clock.schedule(self._start_charge, 0.3)
         elif attack:
             self.can_act.lock(0.5)
             animate(
@@ -138,6 +152,23 @@ class Knight:
             radius=100,
             on_finished=self.normal_stance
         )
+
+    def _start_charge(self):
+        clock.each_tick(self._charge)
+        self.charge_t = 0
+
+    def _charge(self, dt):
+        self.charge_t += dt
+        angle = self.knight.angle
+        c, s = np.cos(angle), np.sin(angle)
+        self.accel = Vector2(c, s) * 2
+        x, y = self.knight.pos
+        if self.charge_t > 1.5 or \
+                x < 30 or x > self.scene.width - 30 or \
+                y < 30 or y > self.scene.height - 30:
+            clock.unschedule(self._charge)
+            self.can_act.unlock()
+            self.can_move.unlock()
 
     def normal_stance(self):
         """Return the knight to his rest pose."""
@@ -163,7 +194,7 @@ class Knight:
 
         if self.accel:
             # New acceleration this frame
-            self.v += self.ACCELERATION * self.accel.normalize() * dt
+            self.v += self.ACCELERATION * self.accel * dt
 
         dv, angle = self.v.as_polar()
         if dv > 1e-2:
