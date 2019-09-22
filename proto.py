@@ -69,7 +69,7 @@ shield_buttons = {
 
 
 movement = Vector2()
-acceleration = 1000
+acceleration_scale = 1000
 air_resistance = 0.01
 max_speed = 1000.0
 
@@ -85,32 +85,27 @@ def update(dt, keyboard):
     if keyboard.escape:
         sys.exit("quittin' time!")
 
-    key_direction = Vector2()
+    acceleration = Vector2()
     for key, vector in movement_keys.items():
         if keyboard[key]:
-            key_direction += vector
+            acceleration += vector
 
     if use_hat:
         x, y = stick.get_hat(0)
         if x or y:
-            hat_vector = Vector2(x, -y)
-            direction += hat_vector
+            acceleration += Vector2(x, -y)
+
 
     if use_left_stick:
-        move_stick = Vector2(
+        stick_vector = Vector2(
             stick.get_axis(0),
             stick.get_axis(1)
         )
-        accel_2 = move_stick.magnitude()
-        if accel_2 < 1e-2:
-            # Dead zone
-            accel = Vector2(0, 0)
-        else:
-            accel = move_stick.normalize() * min(1.0, accel_2)
-    else:
-        accel = key_direction.normalize()
+        stick_magnitude = stick_vector.magnitude()
+        if stick_magnitude >= 1e-2:
+            acceleration += stick_vector.normalize() * min(1.0, stick_magnitude)
 
-    movement = movement * air_resistance ** dt + acceleration * accel * dt
+    movement = movement * air_resistance ** dt + acceleration_scale * acceleration * dt
     if movement.magnitude() > max_speed:
         movement.scale_to_length(max_speed)
 
