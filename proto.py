@@ -1,37 +1,234 @@
+import enum
 import sys
 import math
 import random
 import wasabi2d
-from wasabi2d import Scene, run, event, clock, Vector2, keys
+from wasabi2d import Scene, run, event, clock, Vector2, keys, sounds
 import pygame.mouse
 from pygame import joystick
 
 
+class CollisionType(enum.IntEnum):
+    INVALID = 0
+    COLLISION_WITH_PLAYER = 1
+    COLLISION_WITH_SHIELD = 2
+    COLLISION_WITH_SWORD = 3
+
 scene = Scene(1024, 768)
+pause = False
 
 # The rest of your code goes here.
 
 screen_center = Vector2(scene.width / 2, scene.height / 2)
 
+def normalize_angle(theta):
+    if theta > math.pi:
+        theta -= math.tau
+    elif theta < -math.pi:
+        theta += math.tau
+    return theta
+
 class Player:
+    radius = 10
+    sword_radius = 20
+    shield_arc = math.tau / 4 # how far the shield extends
+    shield_angle = 0
+    dead = False
+
     def __init__(self):
-        self.pos = screen_center
+        self.pos = Vector2(screen_center)
         self.shape = scene.layers[0].add_circle(
-            radius=10,
+            radius=self.radius,
             pos=self.pos,
-            color=(0, 128, 0),
-        )
+            color=(0, 1/2, 0),
+            )
+
+        # self.shield = scene.layers[1].add_sprite(
+        #     'swordandshield',
+        #     pos=(scene.width / 2, scene.height / 2),
+        #     )
+        inner = []
+        outer = []
+        # radius_delta = 2
+        inner_radius = self.radius - 3
+        outer_radius = self.radius + 1
+        # lame, range only handles ints. duh!
+        start = math.degrees(-self.shield_arc / 2)
+        stop = math.degrees(self.shield_arc / 2)
+        step = (stop - start) / 12
+        theta = start
+        def append(theta):
+            # even lamer: from_polar()
+            # MUST BE CALLED ON AN INSTANCE
+            # TAKES AN ARGUMENT, WHICH MUST BE A Vector2
+            # IGNORES ITS OWN x AND y, OVERWRITING THEM
+            # WTF
+            v = Vector2(inner_radius, theta)
+            v.from_polar(v)
+            inner.append(tuple(v))
+
+            v = Vector2(outer_radius, theta)
+            v.from_polar(v)
+            outer.append(tuple(v))
+
+        while theta < stop:
+            append(theta)
+            theta += step
+        append(stop)
+
+        # now make the sword pointy!
+        middle = len(outer) // 2
+        v = Vector2(outer[middle])
+        radius, theta = v.as_polar()
+        v.from_polar((self.sword_radius, theta))
+        outer[middle] = tuple(v)
+
+        inner.reverse()
+        outer.extend(inner)
+        vertices = outer
+        self.shield = scene.layers[1].add_polygon(vertices, fill=True, color=(1, 1, 1))
+        self.movement = Vector2()
+
+    def update(self, dt, keyboard):
+        acceleration = Vector2()
+        for key, vector in movement_keys.items():
+            if keyboard[key]:
+                acceleration += vector
+
+        if use_hat:
+            x, y = stick.get_hat(0)
+            if x or y:
+                acceleration += Vector2(x, -y)
+
+        if use_left_stick:
+            stick_vector = Vector2(
+                stick.get_axis(0),
+                stick.get_axis(1)
+            )
+            stick_magnitude = stick_vector.magnitude()
+            if stick_magnitude >= 1e-2:
+                acceleration += stick_vector.normalize() * min(1.0, stick_magnitude)
+
+        self.movement = self.movement * air_resistance ** dt + acceleration_scale * acceleration * dt
+        if self.movement.magnitude() > max_speed:
+            self.movement.scale_to_length(max_speed)
+
+        self.pos += self.movement * dt
+        self.shield.pos = self.shape.pos = self.pos
+
+        def update_shield(source, vector):
+            dist, degrees = vector.as_polar()
+            angle = math.radians(degrees)
+
+            delta = abs(self.shield_angle - angle)
+            # krazy kode to avoid the "sword goes crazy when you flip from 179° to 181°" problem
+            # aka the "+math.pi to -math.pi" problem
+            if delta > math.pi:
+                if angle < self.shield_angle:
+                    angle += math.tau
+                else:
+                    angle -= math.tau
+                delta = abs(self.shield_angle - angle)
+                assert delta <= math.pi
+
+            if delta <= max_shield_delta:
+                self.shield_angle = angle
+            elif angle < self.shield_angle:
+                self.shield_angle -= max_shield_delta
+            else:
+                self.shield_angle += max_shield_delta
+
+            self.shield_angle = normalize_angle(self.shield_angle)
+
+            # update the shape
+            self.shield.angle = self.shield_angle
+            assert -math.pi <= self.shield.angle <= math.pi
+
+        mouse_movement = pygame.mouse.get_rel()
+        if mouse_movement[0] or mouse_movement[1]:
+            update_shield("mouse", Vector2(mouse_movement))
+
+        direction = Vector2()
+        for key, vector in shield_keys.items():
+            if keyboard[key]:
+                direction += vector
+        if direction:
+            update_shield("keyboard", direction)
+
+        if use_right_stick:
+            stick_rx = stick.get_axis(3)
+            stick_ry = stick.get_axis(4)
+            # print(stick.get_axis(2), stick.get_axis(3), stick.get_axis(4), stick.get_axis(5))
+            if stick_rx or stick_ry:
+                update_shield("right stick", Vector2(stick_rx, stick_ry))
+
+        # pressed = set()
+        # for i in range(buttons):
+        #     if stick.get_button(i):
+        #         pressed.add(i)
+        # if pressed:
+        #     print(pressed)
+        if use_face_buttons:
+            direction = Vector2()
+            for button, vector in shield_buttons.items():
+                if stick.get_button(button):
+                    direction += vector
+            if direction:
+                update_shield("buttons", direction)
+
+    def on_collision(self, other):
+        """
+        Returns bool indicating whether or not the collision was on the player or on the shield.
+        True for it hit the player, false for it hit the shield.
+        """
+        global pause
+        if self.dead:
+            return CollisionType.INVALID
+        # calculate whether or not it hit the shield first
+        # simply: is the angle to other within the two angles
+        # of the shield's edges?
+        #
+        # note: we guarantee when we calculate it that
+        # -math.pi <= self.shield_angle <= math.pi
+        delta = other.pos - self.pos
+        magnitude, theta = delta.as_polar()
+        theta = math.radians(theta)
+
+        start = normalize_angle(self.shield_angle - self.shield_arc)
+        end   = normalize_angle(self.shield_angle + self.shield_arc)
+
+        if end < start:
+            # the shield crosses 180 degrees! handle special
+            within_shield = ((start <= theta <= math.pi) and (-math.pi <= theta <= end))
+        else:
+            within_shield = start <= theta <= end
+
+        if within_shield:
+            print("player ignore collision with", other)
+            return CollisionType.COLLISION_WITH_SHIELD
+
+        print("PLAYER HIT", other)
+        self.dead = True
+        pause = True
+        sounds.hit.play()
+        self.shape.delete()
+        self.shield.delete()
+
+        self.game_over_text = scene.layers[2].add_label(
+            text = "YOU DIED\nGAME OVER\nPRESS ESCAPE TO QUIT",
+            fontsize = 44.0,
+            align = "center",
+            pos = screen_center,
+            )
+
+        return CollisionType.COLLISION_WITH_PLAYER
+
+
+
+
 
 player = Player()
 
-def player_collided(other):
-    print("Player collided with", other)
-
-sword_and_shield = scene.layers[1].add_sprite(
-    'swordandshield',
-    pos=(scene.width / 2, scene.height / 2),
-)
-sword_and_shield.scale=1.3
 
 movement_keys = {
     keys.W: Vector2(+0, -1),
@@ -79,7 +276,6 @@ shield_buttons = {
 }
 
 
-movement = Vector2()
 # dan's original values
 acceleration_scale = 1000
 air_resistance = 0.01
@@ -90,7 +286,6 @@ acceleration_scale = 2000
 air_resistance = 0.05
 max_speed = 100000.0
 
-shield_angle = 0
 max_shield_delta = math.tau / 6
 
 time = 0
@@ -100,136 +295,91 @@ enemies = []
 @event
 def update(dt, keyboard):
     global time
-    global movement
-    global shield_angle
-
-    time += dt
 
     if keyboard.escape:
         sys.exit("quittin' time!")
 
-    acceleration = Vector2()
-    for key, vector in movement_keys.items():
-        if keyboard[key]:
-            acceleration += vector
+    if pause:
+        return
 
-    if use_hat:
-        x, y = stick.get_hat(0)
-        if x or y:
-            acceleration += Vector2(x, -y)
+    time += dt
 
-
-    if use_left_stick:
-        stick_vector = Vector2(
-            stick.get_axis(0),
-            stick.get_axis(1)
-        )
-        stick_magnitude = stick_vector.magnitude()
-        if stick_magnitude >= 1e-2:
-            acceleration += stick_vector.normalize() * min(1.0, stick_magnitude)
-
-    movement = movement * air_resistance ** dt + acceleration_scale * acceleration * dt
-    if movement.magnitude() > max_speed:
-        movement.scale_to_length(max_speed)
-
-    player.pos += movement * dt
-    sword_and_shield.pos = player.shape.pos = player.pos
-
-    def update_shield(source, vector):
-        dist, degrees = vector.as_polar()
-        angle = math.radians(degrees)
-
-        delta = abs(sword_and_shield.angle - angle)
-        # krazy kode to avoid the "sword goes crazy when you flip from 179° to 181°" problem
-        # aka the "+math.pi to -math.pi" problem
-        if delta > math.pi:
-            if angle < sword_and_shield.angle:
-                angle += math.tau
-            else:
-                angle -= math.tau
-            delta = abs(sword_and_shield.angle - angle)
-            assert delta <= math.pi
-
-        if delta <= max_shield_delta:
-            sword_and_shield.angle = angle
-        elif angle < sword_and_shield.angle:
-            sword_and_shield.angle -= max_shield_delta
-        else:
-            sword_and_shield.angle += max_shield_delta
-
-        if sword_and_shield.angle > math.tau:
-            sword_and_shield.angle -= math.tau
-        elif sword_and_shield.angle < -math.tau:
-            sword_and_shield.angle += math.tau
-
-    mouse_movement = pygame.mouse.get_rel()
-    if mouse_movement[0] or mouse_movement[1]:
-        update_shield("mouse", Vector2(mouse_movement))
-
-    direction = Vector2()
-    for key, vector in shield_keys.items():
-        if keyboard[key]:
-            direction += vector
-    if direction:
-        update_shield("keyboard", direction)
-
-    if use_right_stick:
-        stick_rx = stick.get_axis(3)
-        stick_ry = stick.get_axis(4)
-        # print(stick.get_axis(2), stick.get_axis(3), stick.get_axis(4), stick.get_axis(5))
-        if stick_rx or stick_ry:
-            update_shield("right stick", Vector2(stick_rx, stick_ry))
-
-    # pressed = set()
-    # for i in range(buttons):
-    #     if stick.get_button(i):
-    #         pressed.add(i)
-    # if pressed:
-    #     print(pressed)
-    if use_face_buttons:
-        direction = Vector2()
-        for button, vector in shield_buttons.items():
-            if stick.get_button(button):
-                direction += vector
-        if direction:
-            update_shield("buttons", direction)
+    player.update(dt, keyboard)
 
     for enemy in enemies:
         enemy.update(dt)
 
 
-random_vector_offset = Vector2(screen_center.y / 2, 0)
+bad_guy_id = 1
+
+def repr_float(f):
+    s = str(f)
+    left, dot, right = s.partition('.')
+    if not dot:
+        return s
+    left = left.rjust(4, '0')
+    right = right[0]
+    return f"{left}.{right}"
 
 class BadGuy:
     def __init__(self):
+        global bad_guy_id
         self.pos = Vector2()
+        self.id = bad_guy_id
+        bad_guy_id += 1
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} {self.id} ({repr_float(self.pos.x)}, {repr_float(self.pos.y)})>"
 
     min_random_distance = 150
     min_random_distance_squared = min_random_distance ** 2
     def random_placement(self):
-        # displacement = random_vector_offset.rotate(random.random() * 360)
-        # self.shape.pos = self.pos = screen_center + displacement
         while True:
             pos = Vector2(random.randint(0, scene.width), random.randint(0, scene.height))
             delta = player.pos - pos
             distance_squared = delta.magnitude_squared()
             if distance_squared > self.min_random_distance_squared:
                 self.pos = pos
-                print("enemy random pos", self.pos)
                 break
 
     speed = 1
+    radius = 1
+
+    def move_to(self, v):
+        self.shape.pos = self.pos = v
+        vector_to_player = player.pos - self.pos
+        distance_squared = vector_to_player.magnitude_squared()
+        collision_distance = (self.radius + player.radius)
+        collision_distance_squared = collision_distance * collision_distance
+        if distance_squared <= collision_distance_squared:
+            touched = player.on_collision(self)
+            if touched == CollisionType.COLLISION_WITH_PLAYER:
+                self.on_collide_player()
+            elif touched == CollisionType.COLLISION_WITH_SHIELD:
+                self.on_collide_shield()
+            elif touched == CollisionType.COLLISION_WITH_SWORD:
+                self.on_collide_sword()
+            self.remove()
+            return
+
+    def on_collide_player(self):
+        pass
+
+    def on_collide_shield(self):
+        pass
+
+    def on_collide_sword(self):
+        self.remove()
+
+    def move_delta(self, delta):
+        v = self.pos + delta
+        self.move_to(v)
 
     def move_towards_player(self):
         delta = player.pos - self.pos
-        if delta.magnitude() <= self.speed:
-            self.shape.pos = player.pos
-            player_collided(self)
-            self.remove()
-            return
-        delta.scale_to_length(self.speed)
-        self.pos += delta
-        self.shape.pos = self.pos
+        if delta.magnitude() > self.speed:
+            delta.scale_to_length(self.speed)
+        self.move_delta(delta)
 
     def remove(self):
         enemies.remove(self)
@@ -237,22 +387,27 @@ class BadGuy:
 
 
 class Stalker(BadGuy):
+    radius = 10
     speed = 2
 
     def __init__(self):
         super().__init__()
         self.shape = scene.layers[0].add_star(
-            outer_radius=10,
+            outer_radius=self.radius,
             inner_radius=4,
             points = 6,
-            color=(255, 128, 0),
+            color=(1, 1/2, 0),
             )
         self.random_placement()
+
+    def on_collide_shield(self):
+        pass
 
     def update(self, dt):
         self.move_towards_player()
 
 class Shot(BadGuy):
+    radius = 2
     speed = 5
     lifetime = 2
 
@@ -260,19 +415,22 @@ class Shot(BadGuy):
         super().__init__()
         self.shooter = shooter
         self.pos = Vector2(shooter.shape.pos[0], shooter.shape.pos[1])
+        self.delta = player.pos - self.pos
+        self.delta.scale_to_length(self.speed)
         self.layer = scene.layers[-1]
         self.shape = self.layer.add_circle(
-            radius=2,
+            radius=self.radius,
             pos=self.pos,
-            color="white",
+            color=(1, 1, 3/4),
         )
-        self.after = time + self.lifetime
+        self.expiration_date = time + self.lifetime
+        sounds.enemy_shot.play()
 
     def update(self, dt):
-        if time > self.after:
+        if time > self.expiration_date:
             self.remove()
             return
-        self.move_towards_player()
+        self.move_delta(self.delta)
 
 
 class Shooter(BadGuy):
@@ -280,14 +438,13 @@ class Shooter(BadGuy):
     max_time = 1.5
 
     speed = 0.5
+    radius = 8
 
     def __init__(self):
         super().__init__()
-        self.shape = scene.layers[0].add_rect(
-            width=10,
-            height=10,
-            fill=True,
-            color=(128, 0, 255),
+        self.shape = scene.layers[0].add_circle(
+            radius=self.radius,
+            color=(1/2, 0, 1),
             )
         self.random_placement()
 
