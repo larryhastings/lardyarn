@@ -108,18 +108,6 @@
          id="rect4164"
          style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#a3a3a3;fill-opacity:1;fill-rule:evenodd;stroke:#808080;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
       <path
-         sodipodi:nodetypes="sssss"
-         inkscape:connector-curvature="0"
-         id="path4136"
-         d="m 195.93299,387.04597 c 0,7.96683 -6.44193,14.42522 -14.38846,14.42522 -7.94653,0 -14.38846,-6.45839 -14.38846,-14.42522 0,-7.96683 9.0441,-17.80134 14.38846,-17.80134 5.95664,0 14.38846,9.83451 14.38846,17.80134 z"
-         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#b3b3b3;fill-opacity:1;fill-rule:evenodd;stroke:#808080;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
-      <path
-         sodipodi:nodetypes="csc"
-         inkscape:connector-curvature="0"
-         id="path4139"
-         d="m 192.06281,383.97708 c -1.86977,-5.17287 -6.78486,-10.09158 -10.51886,-10.09158 -3.35026,0 -8.49109,4.91859 -10.46934,10.09158"
-         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#b3b3b3;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
-      <path
          d="m 203,375.17471 a 13.75,13.4375 0 0 1 13.75,13.4375 13.75,13.4375 0 0 1 -13.75,13.4375 l 0,-13.4375 z"
          sodipodi:end="1.5707963"
          sodipodi:start="4.712389"
@@ -318,7 +306,7 @@
     </g>
     <path
        sodipodi:type="star"
-       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:0.93;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
        id="path4403"
        sodipodi:sides="7"
        sodipodi:cx="852.87885"
@@ -337,5 +325,24 @@
        inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/smoke.png"
        inkscape:export-xdpi="89.999954"
        inkscape:export-ydpi="89.999954" />
+    <g
+       transform="matrix(0,1,-1,0,601.73259,341.19469)"
+       id="g4405"
+       inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/knight-head.png"
+       inkscape:export-xdpi="90.574821"
+       inkscape:export-ydpi="90.574821">
+      <path
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#b3b3b3;fill-opacity:1;fill-rule:evenodd;stroke:#808080;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         d="m 195.93299,387.04597 c 0,7.96683 -6.44193,14.42522 -14.38846,14.42522 -7.94653,0 -14.38846,-6.45839 -14.38846,-14.42522 0,-7.96683 9.0441,-17.80134 14.38846,-17.80134 5.95664,0 14.38846,9.83451 14.38846,17.80134 z"
+         id="path4136"
+         inkscape:connector-curvature="0"
+         sodipodi:nodetypes="sssss" />
+      <path
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#b3b3b3;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         d="m 192.06281,383.97708 c -1.86977,-5.17287 -6.78486,-10.09158 -10.51886,-10.09158 -3.35026,0 -8.49109,4.91859 -10.46934,10.09158"
+         id="path4139"
+         inkscape:connector-curvature="0"
+         sodipodi:nodetypes="csc" />
+    </g>
   </g>
 </svg>
