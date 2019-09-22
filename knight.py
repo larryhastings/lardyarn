@@ -184,7 +184,7 @@ class Knight:
         self.can_attack = True
 
     # Acceleration of the knight in pixels/s^2
-    ACCELERATION = 600
+    ACCELERATION = 900
     # Rate the knight is slowed, fraction of speed/s
     DRAG = 0.01
 
@@ -211,10 +211,16 @@ class Knight:
         self.step += dv
 
         # Scale the knight to simulate gait
-        bob = 1.05 + 0.05 * np.sin(self.step / 300)
+        bob = 1.05 + 0.05 * np.sin(self.step / 500)
         self.knight.scale = self.head.scale = bob
 
-        self.pos += self.v * dt
+        sz = Vector2(30, 30)
+        self.pos = np.clip(
+            self.pos + self.v * dt,
+            sz,
+            Vector2(self.scene.width, self.scene.height) - sz
+        )
+
         self.head.pos = self.knight.pos = self.pos
         self.shield.update()
         self.sword.update()
@@ -226,6 +232,7 @@ class Knight:
                 num=np.random.poisson(self.v.length() * self.SMOKE_RATE * dt),
                 pos=stern,
                 pos_spread=4,
+                vel=self.v * 0.3,
                 spin_spread=1,
                 size=20,
             )

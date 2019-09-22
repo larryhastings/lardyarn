@@ -17,6 +17,7 @@ smoke = scene.layers[-1].add_particle_group(
     texture='smoke',
     grow=0.2,
     max_age=1.3,
+    drag=0.1,
 )
 smoke.add_color_stop(0, '#888888ff')
 smoke.add_color_stop(0.6, '#888888ff')
