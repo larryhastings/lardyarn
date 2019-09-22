@@ -48,6 +48,24 @@ shield_keys = {
 joystick.init()
 stick = joystick.Joystick(0)
 stick.init()
+axes = stick.get_numaxes()
+print("joystick AXES", axes)
+use_right_stick = axes > 2
+
+buttons = stick.get_numbuttons()
+print("joystick BUTTONS", buttons)
+
+hats = stick.get_numhats()
+print("joystick HATS", hats)
+
+
+shield_buttons = {
+    3: Vector2(+0, -1),
+    0: Vector2(+0, +1),
+    2: Vector2(-1, +0),
+    1: Vector2(+1, +0),
+}
+
 
 movement = Vector2()
 acceleration = 7
@@ -76,6 +94,13 @@ def move_winky():
         stick_vector = Vector2(stick_x, stick_y)
         stick_vector = stick_vector.normalize()
         direction += stick_vector
+
+    if hats:
+        x, y = stick.get_hat(0)
+        if x or y:
+            hat_vector = Vector2(x, -y)
+            direction += hat_vector
+
 
     if direction or movement:
         movement = movement * air_resistance
@@ -111,14 +136,27 @@ def move_winky():
     if direction:
         update_shield("keyboard", direction)
 
-    stick_rx = stick.get_axis(3)
-    stick_ry = stick.get_axis(4)
-    # print(stick.get_axis(2), stick.get_axis(3), stick.get_axis(4), stick.get_axis(5))
-    if stick_rx or stick_ry:
-        update_shield("joystick", Vector2(stick_rx, stick_ry))
+    if use_right_stick:
+        stick_rx = stick.get_axis(3)
+        stick_ry = stick.get_axis(4)
+        # print(stick.get_axis(2), stick.get_axis(3), stick.get_axis(4), stick.get_axis(5))
+        if stick_rx or stick_ry:
+            update_shield("right stick", Vector2(stick_rx, stick_ry))
+
+    # pressed = set()
+    # for i in range(buttons):
+    #     if stick.get_button(i):
+    #         pressed.add(i)
+    # if pressed:
+    #     print(pressed)
+    direction = Vector2()
+    for button, vector in shield_buttons.items():
+        if stick.get_button(button):
+            direction += vector
+    if direction:
+        update_shield("buttons", direction)
 
 
-print("AXES", stick.get_numaxes())
 
 
 clock.schedule_interval(move_winky, 0.05)
