@@ -28,10 +28,6 @@ scene.smoke = smoke
 joystick.init()
 
 
-
-knight = Knight(scene)
-
-
 @dataclass
 class JoyController:
     pc: Knight
@@ -50,7 +46,7 @@ class JoyController:
             self.stick.get_axis(1),
         ))
         inputs = tuple(self.stick.get_button(k) for k in self.BUTTON_MAP)
-        knight.set_inputs(inputs)
+        self.pc.set_inputs(inputs)
 
 
 @dataclass
@@ -71,25 +67,47 @@ class KeyboardController:
         elif keyboard.down:
             ay = 1
 
-        knight.accelerate((ax, ay))
+        self.pc.accelerate((ax, ay))
         inputs = tuple(keyboard[k] for k in self.KEY_MAP)
-        knight.set_inputs(inputs)
+        self.pc.set_inputs(inputs)
 
 
 assert len(KeyboardController.KEY_MAP) == len(JoyController.BUTTON_MAP), \
         "Mismatch on number of inputs for controller types."
 
 
+player1 = Knight(scene)
+pcs = [player1]
+controllers = []
+
 if joystick.get_count() > 0:
-    controller = JoyController(knight, joystick.Joystick(0))
+    controllers.append(
+        JoyController(player1, joystick.Joystick(0))
+    )
 else:
-    controller = KeyboardController(knight)
+    controllers.append(
+        KeyboardController(player1)
+    )
+
+if joystick.get_count() > 1:
+    print("2-player game")
+    player1.pos.x *= 0.5
+    player2 = Knight(scene, color=(0.4, 0.9, 1.1, 1))
+    player2.pos.x += player1.pos.x
+    pcs.append(player2)
+    controllers.append(
+        JoyController(player2, joystick.Joystick(1))
+    )
+else:
+    print("1-player game")
 
 
 @event
 def update(dt, keyboard):
-    controller.update()
-    knight.update(dt)
+    for controller in controllers:
+        controller.update()
+    for pc in pcs:
+        pc.update(dt)
 
 
 SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT

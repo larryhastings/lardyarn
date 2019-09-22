@@ -74,12 +74,15 @@ class Lockout:
 class Knight:
     """The player character."""
 
-    def __init__(self, scene):
+    def __init__(self, scene, color=(1, 1, 1, 1)):
         self.scene = scene
         shield_sprite = scene.layers[0].add_sprite('shield')
         sword_sprite = scene.layers[0].add_sprite('sword-gripped')
         self.knight = scene.layers[0].add_sprite('knight')
         self.head = scene.layers[0].add_sprite('knight-head')
+
+        for spr in (self.knight, self.head):
+            spr.color = color
 
         self.shield = Hand(
             sprite=shield_sprite,
