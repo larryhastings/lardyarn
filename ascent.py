@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 import math
+import random
 
 import numpy as np
-from wasabi2d import Scene, event, run, Vector2, keys
+from wasabi2d import Scene, event, run, Vector2, keys, animate
 from wasabi2d.keyboard import keyboard
 import pygame
 from pygame import joystick
@@ -26,6 +27,48 @@ scene.smoke = smoke
 
 
 joystick.init()
+
+
+
+class Skeleton:
+    def __init__(self, scene, pos, angle=0):
+        self.scene = scene
+
+        self.body = scene.layers[0].add_sprite(
+            'skeleton-body',
+            pos=pos,
+            angle=angle
+        )
+        self.head = scene.layers[0].add_sprite(
+            'skeleton-head',
+            pos=pos,
+            angle=angle
+        )
+
+        self.target = random.choice(pcs)
+        self.bob = 1.0
+        self.gait_speed = random.uniform(0.3, 0.5)
+        self.gait_step = random.uniform(1.07, 1.2)
+
+    SPEED = 30
+
+    def update(self, dt):
+        to_target = Vector2(*self.target.pos - self.head.pos)
+        dist, angle_deg = to_target.as_polar()
+        angle_to_target = math.radians(angle_deg)
+        self.head.angle = angle_to_target
+
+        if dist > 30:
+            self.head.pos += to_target.normalize() * self.SPEED * dt
+            self.body.pos = self.head.pos
+            self.bob += self.gait_speed * dt
+            if self.bob > self.gait_step:
+                self.bob = 1.0
+            self.head.scale = self.body.scale = self.bob
+
+        animate(
+            self.body, duration=0.3, angle=angle_to_target
+        )
 
 
 @dataclass
@@ -102,12 +145,28 @@ else:
     print("1-player game")
 
 
+mobs = []
+
+def spawn_mobs(num):
+    xs = np.random.uniform(30, scene.width - 30, size=num)
+    ys = np.random.uniform(30, scene.height - 30, size=num)
+    angles = np.random.uniform(-math.pi, math.pi, size=num)
+    for x, y, angle in zip(xs, ys, angles):
+        mobs.append(
+            Skeleton(scene, Vector2(x, y), angle)
+        )
+
+spawn_mobs(20)
+
+
 @event
 def update(dt, keyboard):
     for controller in controllers:
         controller.update()
     for pc in pcs:
         pc.update(dt)
+    for mob in mobs:
+        mob.update(dt)
 
 
 SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
