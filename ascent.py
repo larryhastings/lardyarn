@@ -25,6 +25,23 @@ smoke.add_color_stop(0.6, '#888888ff')
 smoke.add_color_stop(0.8, '#88888800')
 scene.smoke = smoke
 
+bones = scene.layers[-1].add_particle_group(
+    texture='bone',
+    max_age=2,
+    grow=0.8,
+    drag=0.2,
+)
+skulls = scene.layers[-1].add_particle_group(
+    texture='skull',
+    max_age=2,
+    grow=0.8,
+    drag=0.2,
+)
+for pgroup in (bones, skulls):
+    pgroup.add_color_stop(0, '#bbbbbbff')
+    pgroup.add_color_stop(1, '#bbbbbbff')
+    pgroup.add_color_stop(2, '#bbbbbb00')
+
 
 joystick.init()
 
@@ -215,6 +232,21 @@ def update(dt, keyboard):
         for mob in mobs:
             if line_segment_intersects_circle(start, dir * 40, mob.pos, 20) is not None:
                 mob.delete()
+                bones.emit(
+                    10,
+                    pos=mob.pos,
+                    vel_spread=80,
+                    spin_spread=3,
+                    size=6,
+                    size_spread=1,
+                )
+                skulls.emit(
+                    1,
+                    pos=mob.pos,
+                    vel_spread=80,
+                    spin_spread=1,
+                    size=8,
+                )
             else:
                 new_mobs.append(mob)
         mobs[:] = new_mobs
