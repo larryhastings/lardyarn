@@ -1,8 +1,9 @@
 import math
 from typing import Any
+from dataclasses import dataclass
 
 import numpy as np
-from wasabi2d import Vector2, animate
+from wasabi2d import Vector2, animate, clock
 
 
 TAU = 2 * math.pi
@@ -12,7 +13,6 @@ def angle_diff(a, b):
     """Find the difference between two angles in radians."""
     diff = abs(a - b) % TAU
     return min(diff, TAU - diff)
-
 
 
 class Hand:
@@ -50,13 +50,30 @@ class Hand:
         self.sprite.pos = k.pos + np.array([s, c]) * self.radius
 
 
+@dataclass
+class Lockout:
+    state: bool = True
+
+    def lock(self, duration=0.1):
+        """Disable attack for at least as long as duration."""
+        self.state = False
+        clock.schedule_unique(self._enable, duration)
+
+    def __bool__(self):
+        return self.state
+
+    def _enable(self):
+        self.state = True
+
+
+
 class Knight:
     """The player character."""
 
     def __init__(self, scene):
         self.scene = scene
         shield_sprite = scene.layers[0].add_sprite('shield')
-        self.sword = scene.layers[0].add_sprite('sword-gripped', angle=5)
+        sword_sprite = scene.layers[0].add_sprite('sword-gripped')
         self.knight = scene.layers[0].add_sprite('knight')
         self.head = scene.layers[0].add_sprite('knight-head')
 
@@ -65,6 +82,12 @@ class Knight:
             knight=self,
             radius=40,
             angle=-1.5,
+        )
+        self.sword = Hand(
+            sprite=sword_sprite,
+            knight=self,
+            radius=85,
+            angle=1,
         )
 
         self.pos = Vector2(scene.width, scene.height) * 0.5
@@ -75,16 +98,59 @@ class Knight:
         # calculating his gait
         self.step = 0
 
+        self.can_act = Lockout()
+
     def accelerate(self, v):
         self.accel += Vector2(v)
 
     def set_inputs(self, inputs):
         """Pass information from the controller."""
-        defend, = inputs
+
+        defend, attack = inputs
+
+        if not self.can_act:
+            return
+
         if defend:
+            self.can_act.lock(0.3)
             animate(self.shield, duration=0.1, angle=-0.2, radius=25)
+            animate(self.sword, duration=0.3, angle=1.3, radius=85)
+        elif attack:
+            self.can_act.lock(0.5)
+            animate(
+                self.sword,
+                'accel_decel',
+                duration=0.05,
+                angle=2.5,
+                on_finished=self._start_attack
+            )
         else:
-            animate(self.shield, duration=0.1, angle=-1.5, radius=40)
+            self.normal_stance()
+
+    def _start_attack(self):
+        """Initiate the attack."""
+        animate(self.shield, duration=0.08, angle=-1.3)
+        animate(
+            self.sword,
+            duration=0.15,
+            tween='accel_decel',
+            angle=-1.5,
+            radius=100,
+            on_finished=self.normal_stance
+        )
+
+    def normal_stance(self):
+        """Return the knight to his rest pose."""
+        animate(self.shield, duration=0.3, angle=-1, radius=40)
+        animate(self.sword, 'accel_decel', duration=0.3, angle=1, radius=85)
+
+    def block_attack(self, duration=0.1):
+        """Disable attack for at least as long as duration."""
+        self.can_attack = False
+        clock.schedule_unique(self._enable_attack, duration)
+
+    def _enable_attack(self):
+        self.can_attack = True
 
     # Acceleration of the knight in pixels/s^2
     ACCELERATION = 600
@@ -119,8 +185,8 @@ class Knight:
 
         self.pos += self.v * dt
         self.head.pos = self.knight.pos = self.pos
-        self.sword.pos = self.pos + Vector2(60, -60)
         self.shield.update()
+        self.sword.update()
         self.accel *= 0.0
 
         if dv > 1e-2:
