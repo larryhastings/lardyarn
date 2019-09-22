@@ -205,6 +205,7 @@ def update(dt, keyboard):
     for pc in pcs:
         if not pc.sword.attack:
             continue
+
         pos = pc.pos
         sword = pc.sword.angle
         dir = Vector2(np.cos(sword), np.sin(sword))

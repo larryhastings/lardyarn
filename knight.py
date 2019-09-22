@@ -156,7 +156,7 @@ class Knight:
             tween='accel_decel',
             angle=-1.5,
             radius=30,
-            on_finished=self._end_attack()
+            on_finished=self._end_attack
         )
 
     def _end_attack(self):
