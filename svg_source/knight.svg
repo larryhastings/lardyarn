@@ -62,10 +62,10 @@
   </defs>
   <sodipodi:namedview
      id="base"
-     pagecolor="#ffffff"
+     pagecolor="#000000"
      bordercolor="#666666"
      borderopacity="1.0"
-     inkscape:pageopacity="0.0"
+     inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4142136"
      inkscape:cx="368.81272"
@@ -316,5 +316,26 @@
          y="0"
          x="0" />
     </g>
+    <path
+       sodipodi:type="star"
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       id="path4403"
+       sodipodi:sides="7"
+       sodipodi:cx="852.87885"
+       sodipodi:cy="624.60492"
+       sodipodi:r1="32.293739"
+       sodipodi:r2="29.051748"
+       sodipodi:arg1="-1.3089969"
+       sodipodi:arg2="-0.76317742"
+       inkscape:flatsided="false"
+       inkscape:rounded="0.263428"
+       inkscape:randomized="-0.072"
+       d="m 861.89423,595.34526 c 3.97656,1.9483 9.6224,5.1338 12.82268,8.01748 2.12992,1.9192 5.54291,6.37535 6.68324,9.1917 1.7134,4.23168 2.67842,9.83047 2.16566,14.18865 -0.34126,2.90056 -2.74917,8.93166 -4.18601,11.59109 -2.1589,3.99589 -9.80376,11.07709 -13.65663,13.32011 -2.56424,1.49282 -5.73482,5.00712 -8.69577,5.37532 -4.44893,0.55322 -10.91799,-2.16117 -14.98492,-3.63025 -2.70671,-0.97773 -8.62684,-0.49929 -10.78548,-2.49872 -3.24345,-3.00422 -5.86125,-15.59094 -7.98048,-19.63052 -1.41043,-2.6885 -2.11188,-4.55208 -1.94969,-7.55352 0.24369,-4.50978 3.58746,-13.2505 6.02074,-16.82544 1.61945,-2.37926 3.17378,-5.52781 5.71002,-7.11814 3.81078,-2.38951 11.48246,-2.29085 15.85415,-2.88279 2.90954,-0.39396 10.33593,-2.84164 12.98249,-1.54497 z"
+       inkscape:transform-center-x="6.2771249"
+       inkscape:transform-center-y="-2.5498892"
+       transform="matrix(1.0256498,0,0,1.0300493,-381.38271,-311.44947)"
+       inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/smoke.png"
+       inkscape:export-xdpi="89.999954"
+       inkscape:export-ydpi="89.999954" />
   </g>
 </svg>
