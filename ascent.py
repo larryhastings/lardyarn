@@ -4,6 +4,7 @@ from wasabi2d import Scene, event, run, Vector2
 
 
 scene = Scene(title="Ascent - PyWeek 28")
+scene.layers[0].set_effect('bloom', radius=10)
 
 
 class Knight:
@@ -11,15 +12,14 @@ class Knight:
 
     def __init__(self):
         self.shield = scene.layers[0].add_sprite('shield')
-        self.sword = scene.layers[0].add_sprite('sword', angle=4)
-        self.rhand = scene.layers[0].add_sprite('rhand')
+        self.sword = scene.layers[0].add_sprite('sword-gripped', angle=5)
         self.knight = scene.layers[0].add_sprite('knight')
 
         self.pos = Vector2(scene.width, scene.height) * 0.5
         self.v = Vector2()
         self.accel = Vector2()
 
-        self.shield_angle = 0
+        self.shield_angle = math.pi
 
     def accelerate(self, v):
         self.accel += Vector2(v)
@@ -43,7 +43,7 @@ class Knight:
 
         self.pos += knight.v * dt
         self.knight.pos = self.pos
-        self.sword.pos = self.pos + Vector2(-60, -60)
+        self.sword.pos = self.pos + Vector2(60, -60)
         self._update_shield()
         self.accel *= 0.0
 

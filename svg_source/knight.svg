@@ -7,6 +7,7 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="210mm"
@@ -17,7 +18,48 @@
    inkscape:version="0.91 r13725"
    sodipodi:docname="knight.svg">
   <defs
-     id="defs4" />
+     id="defs4">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient4383">
+      <stop
+         style="stop-color:#ffffff;stop-opacity:1"
+         offset="0"
+         id="stop4385" />
+      <stop
+         id="stop4393"
+         offset="0.5857017"
+         style="stop-color:#ffffff;stop-opacity:0.73725492" />
+      <stop
+         style="stop-color:#804200;stop-opacity:0"
+         offset="1"
+         id="stop4387" />
+    </linearGradient>
+    <filter
+       inkscape:collect="always"
+       style="color-interpolation-filters:sRGB"
+       id="filter4379"
+       x="-0.0444"
+       width="1.0888"
+       y="-0.0444"
+       height="1.0888">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="0.5083674"
+         id="feGaussianBlur4381" />
+    </filter>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient4383"
+       id="radialGradient4391"
+       cx="366.27478"
+       cy="269.23309"
+       fx="366.27478"
+       fy="269.23309"
+       r="14.95974"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.2407715,0.00534199,-0.00476321,1.1063406,-86.987989,-30.578727)" />
+  </defs>
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -25,9 +67,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1"
-     inkscape:cx="245.3724"
-     inkscape:cy="691.20165"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="368.81272"
+     inkscape:cy="682.74334"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -148,29 +190,6 @@
       </g>
     </g>
     <g
-       id="g4307"
-       inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/rhand.png"
-       inkscape:export-xdpi="90.574821"
-       inkscape:export-ydpi="90.574821"
-       transform="matrix(0.41152556,0.91139822,-0.91139822,0.41152556,463.38317,1.9450865)">
-      <ellipse
-         ry="7.1658058"
-         rx="7.6030874"
-         cy="310.69196"
-         cx="-277.55072"
-         id="path4188-5"
-         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#a3a3a3;fill-opacity:1;fill-rule:evenodd;stroke:#808080;stroke-width:2.00113344;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
-         transform="matrix(-0.98213685,-0.18816803,-0.14122409,0.98997765,0,0)" />
-      <ellipse
-         transform="matrix(-0.60690063,0.79477772,0.7035471,0.71064863,0,0)"
-         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#a3a3a3;fill-opacity:1;fill-rule:evenodd;stroke:#808080;stroke-width:2.00961185;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
-         id="ellipse4190-3"
-         cx="87.27285"
-         cy="410.44431"
-         rx="5.0384784"
-         ry="2.2654381" />
-    </g>
-    <g
        id="g4256"
        transform="translate(13.611806,-0.70710678)"
        inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/sword.png"
@@ -212,6 +231,90 @@
          d="m 186.85296,328.63842 74.95332,0.35355 -9.36916,-5.83363 -65.58416,1.06066 z"
          id="path4262"
          inkscape:connector-curvature="0" />
+    </g>
+    <g
+       id="g4307"
+       inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/rhand.png"
+       inkscape:export-xdpi="90.574821"
+       inkscape:export-ydpi="90.574821"
+       transform="matrix(0.41152556,0.91139822,-0.91139822,0.41152556,418.12833,14.673009)">
+      <ellipse
+         ry="7.1658058"
+         rx="7.6030874"
+         cy="310.69196"
+         cx="-277.55072"
+         id="path4188-5"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#a3a3a3;fill-opacity:1;fill-rule:evenodd;stroke:#808080;stroke-width:2.00113344;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         transform="matrix(-0.98213685,-0.18816803,-0.14122409,0.98997765,0,0)" />
+      <ellipse
+         transform="matrix(-0.60690063,0.79477772,0.7035471,0.71064863,0,0)"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#a3a3a3;fill-opacity:1;fill-rule:evenodd;stroke:#808080;stroke-width:2.00961185;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         id="ellipse4190-3"
+         cx="87.27285"
+         cy="410.44431"
+         rx="5.0384784"
+         ry="2.2654381" />
+    </g>
+    <g
+       id="g4329"
+       transform="matrix(0,1,-1,0,709.61221,18.612213)">
+      <circle
+         r="11.5"
+         cy="365.36221"
+         cx="345.5"
+         id="path4311"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#666666;fill-opacity:1;fill-rule:evenodd;stroke:#4d4d4d;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+      <rect
+         ry="3.1945496"
+         rx="5.25"
+         y="351.36221"
+         x="340.375"
+         height="9.5"
+         width="10.5"
+         id="rect4313"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#666666;fill-opacity:1;fill-rule:evenodd;stroke:#4d4d4d;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+    </g>
+    <path
+       sodipodi:type="star"
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:url(#radialGradient4391);fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate;filter:url(#filter4379)"
+       id="path4333"
+       sodipodi:sides="7"
+       sodipodi:cx="366"
+       sodipodi:cy="269.36221"
+       sodipodi:r1="14.142136"
+       sodipodi:r2="10.818734"
+       sodipodi:arg1="0.78539816"
+       sodipodi:arg2="1.2341971"
+       inkscape:flatsided="false"
+       inkscape:rounded="0.263428"
+       inkscape:randomized="0"
+       d="m 376,279.36221 c -1.19778,1.19778 -4.82794,-0.34784 -6.4268,0.21163 -1.59886,0.55946 -3.47335,4.03124 -5.15662,3.84159 -1.68326,-0.18966 -2.73821,-3.99151 -4.17249,-4.89273 -1.43428,-0.90122 -5.31736,-0.20214 -6.21858,-1.63642 -0.90122,-1.43428 1.41344,-4.62949 1.22378,-6.31275 -0.18966,-1.68327 -3.15728,-4.28331 -2.59782,-5.88217 0.55947,-1.59886 4.50075,-1.78137 5.69853,-2.97915 1.19778,-1.19778 1.38029,-5.13906 2.97915,-5.69852 1.59886,-0.55947 4.1989,2.40816 5.88216,2.59781 1.68327,0.18966 4.87848,-2.12499 6.31276,-1.22378 1.43428,0.90122 0.7352,4.7843 1.63641,6.21858 0.90122,1.43428 4.70307,2.48923 4.89273,4.1725 0.18966,1.68326 -3.28212,3.55776 -3.84159,5.15661 -0.55946,1.59886 0.98616,5.22902 -0.21162,6.4268 z"
+       inkscape:transform-center-x="1.9658031"
+       inkscape:transform-center-y="1.8518415"
+       inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/spark.png"
+       inkscape:export-xdpi="192.51701"
+       inkscape:export-ydpi="192.51701" />
+    <g
+       id="g4399"
+       inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/sword-gripped.png"
+       inkscape:export-xdpi="90.574821"
+       inkscape:export-ydpi="90.574821">
+      <use
+         height="100%"
+         width="100%"
+         transform="translate(0,-80.610173)"
+         id="use4397"
+         xlink:href="#g4256"
+         y="0"
+         x="0" />
+      <use
+         height="100%"
+         width="100%"
+         transform="translate(0,-123.74369)"
+         id="use4395"
+         xlink:href="#g4307"
+         y="0"
+         x="0" />
     </g>
   </g>
 </svg>
