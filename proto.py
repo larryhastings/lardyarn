@@ -69,9 +69,15 @@ shield_buttons = {
 
 
 movement = Vector2()
+# dan's original values
 acceleration_scale = 1000
 air_resistance = 0.01
 max_speed = 1000.0
+
+# tweaked faster values
+acceleration_scale = 2000
+air_resistance = 0.05
+max_speed = 100000.0
 
 shield_angle = 0
 max_shield_delta = math.tau / 6
@@ -116,12 +122,28 @@ def update(dt, keyboard):
         dist, degrees = vector.as_polar()
         angle = math.radians(degrees)
 
-        if abs(sword_and_shield.angle - angle) <= max_shield_delta:
+        delta = abs(sword_and_shield.angle - angle)
+        # krazy kode to avoid the "sword goes crazy when you flip from 179° to 181°" problem
+        # aka the "+math.pi to -math.pi" problem
+        if delta > math.pi:
+            if angle < sword_and_shield.angle:
+                angle += math.tau
+            else:
+                angle -= math.tau
+            delta = abs(sword_and_shield.angle - angle)
+            assert delta <= math.pi
+
+        if delta <= max_shield_delta:
             sword_and_shield.angle = angle
         elif angle < sword_and_shield.angle:
             sword_and_shield.angle -= max_shield_delta
         else:
             sword_and_shield.angle += max_shield_delta
+
+        if sword_and_shield.angle > math.tau:
+            sword_and_shield.angle -= math.tau
+        elif sword_and_shield.angle < -math.tau:
+            sword_and_shield.angle += math.tau
 
     mouse_movement = pygame.mouse.get_rel()
     if mouse_movement[0] or mouse_movement[1]:
