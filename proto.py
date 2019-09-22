@@ -1,16 +1,9 @@
 import sys
-
-stdout = sys.stdout
-sys.stdout = None
-import pygame
-sys.stdout = stdout
-
 import math
+import wasabi2d
+from wasabi2d import Scene, run, event, clock, Vector2, keys
 import pygame.mouse
 from pygame import joystick
-from pygame.locals import *
-import wasabi2d
-from wasabi2d import Scene, run, event, clock, Vector2
 
 
 scene = Scene(1024, 768)
@@ -30,18 +23,18 @@ sword_and_shield = scene.layers[1].add_sprite(
 sword_and_shield.scale=1.3
 
 movement_keys = {
-    K_w: Vector2(+0, -1),
-    K_s: Vector2(+0, +1),
-    K_a: Vector2(-1, +0),
-    K_d: Vector2(+1, +0),
+    keys.W: Vector2(+0, -1),
+    keys.S: Vector2(+0, +1),
+    keys.A: Vector2(-1, +0),
+    keys.D: Vector2(+1, +0),
 }
 
 
 shield_keys = {
-    K_i: Vector2(+0, -1),
-    K_k: Vector2(+0, +1),
-    K_j: Vector2(-1, +0),
-    K_l: Vector2(+1, +0),
+    keys.I: Vector2(+0, -1),
+    keys.K: Vector2(+0, +1),
+    keys.J: Vector2(-1, +0),
+    keys.L: Vector2(+1, +0),
 }
 
 
@@ -76,35 +69,26 @@ shield_buttons = {
 
 
 movement = Vector2()
-acceleration = 7
-air_resistance = 0.6
-max_speed = 30.0
+acceleration = 1000
+air_resistance = 0.01
+max_speed = 1000.0
 
 shield_angle = 0
 max_shield_delta = math.tau / 6
 
 
-from pygame.key import get_pressed
-
-def move_winky():
+@event
+def update(dt, keyboard):
     global movement
     global shield_angle
-    keys = get_pressed()
-    if keys[K_ESCAPE]:
+
+    if keyboard.escape:
         sys.exit("quittin' time!")
 
-    direction = Vector2()
+    key_direction = Vector2()
     for key, vector in movement_keys.items():
-        if keys[key]:
-            direction += vector
-
-    if use_left_stick:
-        stick_x = stick.get_axis(0)
-        stick_y = stick.get_axis(1)
-        if stick_x or stick_y:
-            stick_vector = Vector2(stick_x, stick_y)
-            stick_vector = stick_vector.normalize()
-            direction += stick_vector
+        if keyboard[key]:
+            key_direction += vector
 
     if use_hat:
         x, y = stick.get_hat(0)
@@ -112,22 +96,31 @@ def move_winky():
             hat_vector = Vector2(x, -y)
             direction += hat_vector
 
-    if direction or movement:
-        movement = movement * air_resistance
-        if direction:
-            direction = direction.normalize() * acceleration
-            movement += direction
-        if movement.magnitude() > max_speed:
-            movement.scale_to_length(max_speed)
-        circle.pos += movement
-        sword_and_shield.pos = circle.pos
+    if use_left_stick:
+        move_stick = Vector2(
+            stick.get_axis(0),
+            stick.get_axis(1)
+        )
+        accel_2 = move_stick.magnitude()
+        if accel_2 < 1e-2:
+            # Dead zone
+            accel = Vector2(0, 0)
+        else:
+            accel = move_stick.normalize() * min(1.0, accel_2)
+    else:
+        accel = key_direction.normalize()
+
+    movement = movement * air_resistance ** dt + acceleration * accel * dt
+    if movement.magnitude() > max_speed:
+        movement.scale_to_length(max_speed)
+
+    circle.pos += movement * dt
+    sword_and_shield.pos = circle.pos
 
     def update_shield(source, vector):
-        polar = vector.as_polar()
-        print(source, vector, polar)
-        angle = polar[1]
-        # hooray, wasabi2d uses radians and pygame uses degrees
-        angle = (angle * math.tau) / 360
+        dist, degrees = vector.as_polar()
+        angle = math.radians(degrees)
+
         if abs(sword_and_shield.angle - angle) <= max_shield_delta:
             sword_and_shield.angle = angle
         elif angle < sword_and_shield.angle:
@@ -141,7 +134,7 @@ def move_winky():
 
     direction = Vector2()
     for key, vector in shield_keys.items():
-        if keys[key]:
+        if keyboard[key]:
             direction += vector
     if direction:
         update_shield("keyboard", direction)
@@ -168,8 +161,5 @@ def move_winky():
             update_shield("buttons", direction)
 
 
-
-
-clock.schedule_interval(move_winky, 0.05)
 
 run()  # keep this at the end of the file

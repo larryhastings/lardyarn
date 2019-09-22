@@ -58,7 +58,7 @@ class Skeleton:
         angle_to_target = math.radians(angle_deg)
         self.head.angle = angle_to_target
 
-        if dist > 30:
+        if dist > 60:
             self.head.pos += to_target.normalize() * self.SPEED * dt
             self.body.pos = self.head.pos
             self.bob += self.gait_speed * dt
