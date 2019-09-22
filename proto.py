@@ -2,6 +2,61 @@ import enum
 import sys
 import math
 import random
+import os.path
+
+
+if hasattr(os, "getwindowsversion"):
+    rcfile_basename = "lardyarn.txt"
+else:
+    rcfile_basename = ".lardyarnrc"
+
+rcfile_schema = {
+    'mixer devicename': (None, str),
+    'button up': 3,
+    'button down': 0,
+    'button left': 2,
+    'button right': 1,
+}
+
+settings = {}
+for name, value in rcfile_schema.items():
+    if isinstance(value, tuple):
+        value, _ = value
+    settings[name] = value
+
+
+rcfile_path = os.path.expanduser("~/" + rcfile_basename)
+if os.path.isfile(rcfile_path):
+    with open(rcfile_path, "rt") as f:
+        for line in f.read().strip().split("\n"):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            name, equals, value = line.partition("=")
+            if not equals:
+                sys.exit("Invalid rcfile line: " + repr(line))
+            name = name.strip()
+            value = value.strip()
+            default = rcfile_schema.get(name)
+            if default is None:
+                sys.exit("Invalid value specified in rcfile: " + repr(name))
+            if isinstance(default, tuple):
+                default, defaulttype = default
+            else:
+                defaulttype = type(default)
+            settings[name] = defaulttype(value)
+
+
+stdout = sys.stdout
+sys.stdout = None
+import pygame
+sys.stdout = stdout
+
+devicename=settings.get('mixer devicename')
+pygame.mixer.pre_init(devicename=devicename)
+pygame.init()
+pygame.mixer.init()
+
 import wasabi2d
 from wasabi2d import Scene, run, event, clock, Vector2, keys, sounds
 import pygame.mouse
@@ -269,10 +324,10 @@ print("use face buttons for shield?", use_face_buttons)
 
 
 shield_buttons = {
-    3: Vector2(+0, -1),
-    0: Vector2(+0, +1),
-    2: Vector2(-1, +0),
-    1: Vector2(+1, +0),
+    settings['button up'   ]: Vector2(+0, -1),
+    settings['button down' ]: Vector2(+0, +1),
+    settings['button left' ]: Vector2(-1, +0),
+    settings['button right']: Vector2(+1, +0),
 }
 
 
