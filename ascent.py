@@ -52,6 +52,14 @@ class Skeleton:
 
     SPEED = 30
 
+    @property
+    def pos(self):
+        return Vector2(*self.head.pos)
+
+    @pos.setter
+    def pos(self, v):
+        self.head.pos = self.body.pos = v
+
     def update(self, dt):
         to_target = Vector2(*self.target.pos - self.head.pos)
         dist, angle_deg = to_target.as_polar()
@@ -168,6 +176,18 @@ def update(dt, keyboard):
         pc.update(dt)
     for mob in mobs:
         mob.update(dt)
+
+    # Push mobs apart. This is O(n^2)
+    for i, mob1 in enumerate(mobs):
+        p1 = mob1.pos
+        for mob2 in mobs[i + 1:]:
+            p2 = mob2.pos
+            sep = Vector2(*p2 - p1)
+            if sep.magnitude_squared() < 900:
+                sep.normalize_ip()
+                mob1.pos = p1 - sep
+                mob2.pos = p2 + sep
+
 
 
 SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
