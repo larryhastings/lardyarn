@@ -12,6 +12,12 @@ else:
 
 rcfile_schema = {
     'mixer devicename': (None, str),
+    'joystick': 0,
+    'hat': 0,
+    'move x axis': 0,
+    'move y axis': 1,
+    'aim x axis': 3,
+    'aim y axis': 4,
     'button up': 3,
     'button down': 0,
     'button left': 2,
@@ -336,11 +342,15 @@ player = Player()
 
 
 movement_keys = {
-    keys.W: Vector2(+0, -1),
-    keys.S: Vector2(+0, +1),
-    keys.A: Vector2(-1, +0),
-    keys.D: Vector2(+1, +0),
+    keys.UP:    Vector2(+0, -1),
+    keys.DOWN:  Vector2(+0, +1),
+    keys.LEFT:  Vector2(-1, +0),
+    keys.RIGHT: Vector2(+1, +0),
 }
+movement_keys[keys.W] = movement_keys[keys.UP]
+movement_keys[keys.S] = movement_keys[keys.DOWN]
+movement_keys[keys.A] = movement_keys[keys.LEFT]
+movement_keys[keys.D] = movement_keys[keys.RIGHT]
 
 
 shield_keys = {
@@ -352,20 +362,38 @@ shield_keys = {
 
 
 joystick.init()
-stick = joystick.Joystick(0)
-stick.init()
-axes = stick.get_numaxes()
-print("joystick AXES", axes)
-use_left_stick = axes >= 2
-use_right_stick = axes >= 5
+which_joystick = settings['joystick']
+if which_joystick < joystick.get_count():
+    stick = joystick.Joystick(which_joystick)
+    stick.init()
+    axes = stick.get_numaxes()
+    print("joystick AXES", axes)
+    use_left_stick = (
+        (max(settings['move x axis'], settings['move y axis']) < axes)
+        and
+        (min(settings['move x axis'], settings['move y axis']) >= 0))
+    use_right_stick = (
+        (max(settings['aim x axis'], settings['aim y axis']) < axes)
+        and
+        (min(settings['aim x axis'], settings['aim y axis']) >= 0))
 
-buttons = stick.get_numbuttons()
-print("joystick BUTTONS", buttons)
-use_face_buttons = buttons >= 4
+    buttons = stick.get_numbuttons()
+    print("joystick BUTTONS", buttons)
+    use_face_buttons = (
+        (max(settings['button up'], settings['button down'], settings['button left'], settings['button right']) < buttons)
+        and
+        (min(settings['button up'], settings['button down'], settings['button left'], settings['button right']) >= 0))
 
-hats = stick.get_numhats()
-print("joystick HATS", hats)
-use_hat = hats >= 1
+    hats = stick.get_numhats()
+    print("joystick HATS", hats)
+    use_hat = hats >= 1
+    use_hat = (
+        (settings['hat'] < hats)
+        and
+        (settings['hat'] >= 0))
+else:
+    print(f"insufficient joysticks!  we want joystick #{which_joystick} but only {joystick.get_count()} joysticks detected.")
+    use_left_stick = use_right_stick = use_face_buttons = use_hat = False
 
 print("use left stick?", use_left_stick)
 print("use right stick?", use_right_stick)
