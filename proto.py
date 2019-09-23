@@ -55,7 +55,16 @@ sys.stdout = stdout
 devicename=settings.get('mixer devicename')
 pygame.mixer.pre_init(devicename=devicename)
 pygame.init()
-pygame.mixer.init()
+try:
+    pygame.mixer.init()
+except pygame.error as e:
+    print("Warning: sound not working")
+    print("    ", e)
+    # call pre-init again with no devicename
+    # this will reset back to the default
+    # which ALSO won't work, but pygame works better this way
+    pygame.mixer.pre_init(devicename=None)
+    pygame.mixer.init()
 
 import wasabi2d
 from wasabi2d import Scene, run, event, clock, Vector2, keys, sounds
@@ -64,7 +73,7 @@ from pygame import joystick
 
 
 class CollisionType(enum.IntEnum):
-    INVALID = 0
+    NO_COLLISION = 0
     COLLISION_WITH_PLAYER = 1
     COLLISION_WITH_SHIELD = 2
     COLLISION_WITH_SWORD = 3
@@ -84,8 +93,9 @@ def normalize_angle(theta):
     return theta
 
 class Player:
-    radius = 10
-    sword_radius = 20
+    body_radius = 10
+    sword_radius = 25
+    radius = sword_radius
     shield_arc = math.tau / 4 # how far the shield extends
     shield_angle = 0
     dead = False
@@ -93,7 +103,7 @@ class Player:
     def __init__(self):
         self.pos = Vector2(screen_center)
         self.shape = scene.layers[0].add_circle(
-            radius=self.radius,
+            radius=self.body_radius,
             pos=self.pos,
             color=(0, 1/2, 0),
             )
@@ -105,8 +115,8 @@ class Player:
         inner = []
         outer = []
         # radius_delta = 2
-        inner_radius = self.radius - 3
-        outer_radius = self.radius + 1
+        inner_radius = self.body_radius - 3
+        outer_radius = self.body_radius + 1
         # lame, range only handles ints. duh!
         start = math.degrees(-self.shield_arc / 2)
         stop = math.degrees(self.shield_arc / 2)
@@ -231,43 +241,68 @@ class Player:
             if direction:
                 update_shield("buttons", direction)
 
-    def on_collision(self, other):
+    def on_collision_sword(self, other):
         """
-        Returns bool indicating whether or not the collision was on the player or on the shield.
-        True for it hit the player, false for it hit the shield.
+        self and body are within sword radius.  are they colliding?
+        Returns enum indicating type of collision.
+        """
+        # first test: is the sword inside it?
+        sword_delta = Vector2(self.sword_radius, math.degrees(self.shield_angle))
+        sword_delta.from_polar(sword_delta)
+        sword_pos = self.pos + sword_delta
+        delta = other.pos - sword_pos
+        if delta.magnitude_squared() < other.radius_squared:
+            return CollisionType.COLLISION_WITH_SWORD
+        return CollisionType.NO_COLLISION
+
+
+    def on_collision_body(self, other):
+        """
+        self and body are within body radius. they're colliding, but how?
+        Returns enum indicating type of collision.
         """
         global pause
         if self.dead:
-            return CollisionType.INVALID
-        # calculate whether or not it hit the shield first
-        # simply: is the angle to other within the two angles
+            return CollisionType.NO_COLLISION
+
+        # what's it touching, the player or the shield?
+        #
+        # is the angle to other within the two angles
         # of the shield's edges?
         #
         # note: we guarantee when we calculate it that
         # -math.pi <= self.shield_angle <= math.pi
         delta = other.pos - self.pos
         magnitude, theta = delta.as_polar()
-        theta = math.radians(theta)
+        theta = normalize_angle(math.radians(theta))
 
         start = normalize_angle(self.shield_angle - self.shield_arc)
         end   = normalize_angle(self.shield_angle + self.shield_arc)
 
         if end < start:
             # the shield crosses 180 degrees! handle special
-            within_shield = ((start <= theta <= math.pi) and (-math.pi <= theta <= end))
+            within_shield = ((start <= theta <= math.pi) or (-math.pi <= theta <= end))
+            print(f"colliding? {within_shield} start {start} theta {theta} math.pi {math.pi}, -math.pi {-math.pi} theta {theta} end {end}")
         else:
             within_shield = start <= theta <= end
+            print(f"colliding? {within_shield} start {start} theta {theta} end {end}")
 
         if within_shield:
             print("player ignore collision with", other)
             return CollisionType.COLLISION_WITH_SHIELD
 
-        print("PLAYER HIT", other)
+        self.on_death(other)
+        return CollisionType.COLLISION_WITH_PLAYER
+
+
+    def on_death(self, other):
+        global pause
+        print("PLAYER HIT", other, "BANG!")
         self.dead = True
         pause = True
         sounds.hit.play()
-        self.shape.delete()
-        self.shield.delete()
+        # self.shape.delete()
+        # self.shield.delete()
 
         self.game_over_text = scene.layers[2].add_label(
             text = "YOU DIED\nGAME OVER\nPRESS ESCAPE TO QUIT",
@@ -276,7 +311,22 @@ class Player:
             pos = screen_center,
             )
 
-        return CollisionType.COLLISION_WITH_PLAYER
+    def on_win(self):
+        global pause
+        print("PLAYER WINS!")
+        self.dead = True
+        pause = True
+        # sounds.hit.play()
+        # self.shape.delete()
+        # self.shield.delete()
+
+        self.game_won_text = scene.layers[2].add_label(
+            text = "A WINNER IS YOU!\ngame over\npress Escape to quit",
+            fontsize = 44.0,
+            align = "center",
+            pos = screen_center,
+            )
+        sounds.game_won.play()
 
 
 
@@ -361,8 +411,11 @@ def update(dt, keyboard):
 
     player.update(dt, keyboard)
 
-    for enemy in enemies:
-        enemy.update(dt)
+    if not enemies:
+        player.on_win()
+    else:
+        for enemy in enemies:
+            enemy.update(dt)
 
 
 bad_guy_id = 1
@@ -377,11 +430,17 @@ def repr_float(f):
     return f"{left}.{right}"
 
 class BadGuy:
+
     def __init__(self):
         global bad_guy_id
         self.pos = Vector2()
         self.id = bad_guy_id
         bad_guy_id += 1
+        self.radius_squared = self.radius ** 2
+        self.sword_collision_distance = (self.radius + player.sword_radius)
+        self.sword_collision_distance_squared = self.sword_collision_distance ** 2
+        self.body_collision_distance = (self.radius + player.body_radius)
+        self.body_collision_distance_squared = self.body_collision_distance ** 2
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.id} ({repr_float(self.pos.x)}, {repr_float(self.pos.y)})>"
@@ -399,32 +458,33 @@ class BadGuy:
 
     speed = 1
     radius = 1
+    dead = False
 
     def move_to(self, v):
+        # print(f"{time:8}", self, "move to", v)
         self.shape.pos = self.pos = v
         vector_to_player = player.pos - self.pos
         distance_squared = vector_to_player.magnitude_squared()
-        collision_distance = (self.radius + player.radius)
-        collision_distance_squared = collision_distance * collision_distance
-        if distance_squared <= collision_distance_squared:
-            touched = player.on_collision(self)
-            if touched == CollisionType.COLLISION_WITH_PLAYER:
-                self.on_collide_player()
-            elif touched == CollisionType.COLLISION_WITH_SHIELD:
-                self.on_collide_shield()
-            elif touched == CollisionType.COLLISION_WITH_SWORD:
+        touching_sword = distance_squared <= self.sword_collision_distance_squared
+        touching_body = distance_squared <= self.body_collision_distance_squared
+        if touching_sword:
+            collision = player.on_collision_sword(self)
+            if collision == CollisionType.COLLISION_WITH_SWORD:
                 self.on_collide_sword()
-            self.remove()
+
+        if self.dead:
             return
 
-    def on_collide_player(self):
-        pass
-
-    def on_collide_shield(self):
-        pass
-
-    def on_collide_sword(self):
-        self.remove()
+        if touching_body:
+            collision = player.on_collision_body(self)
+            assert collision != CollisionType.COLLISION_WITH_SWORD
+            if collision == CollisionType.NO_COLLISION:
+                return
+            if collision == CollisionType.COLLISION_WITH_PLAYER:
+                self.on_collide_player()
+            else:
+                assert collision == CollisionType.COLLISION_WITH_SHIELD
+                self.on_collide_shield()
 
     def move_delta(self, delta):
         v = self.pos + delta
@@ -434,36 +494,63 @@ class BadGuy:
         delta = player.pos - self.pos
         if delta.magnitude() > self.speed:
             delta.scale_to_length(self.speed)
-        self.move_delta(delta)
+        self.move_to(self.pos + delta)
+
+    def push_away_from_player(self):
+        delta = self.pos - player.pos
+        delta2 = Vector2(delta)
+        delta2.scale_to_length(self.body_collision_distance * 1.1)
+        print(f"push away self.pos {self.pos} player.pos {player.pos} delta {delta} delta2 {delta2}")
+        self.move_to(player.pos + delta2)
 
     def remove(self):
         enemies.remove(self)
         self.shape.delete()
+
+    def on_collide_player(self):
+        pass
+
+    def on_collide_shield(self):
+        self.push_away_from_player()
+
+    def on_collide_sword(self):
+        self.on_death()
+
+    def on_death(self):
+        self.dead = True
+        self.remove()
+
 
 
 class Stalker(BadGuy):
     radius = 10
     speed = 2
 
-    def __init__(self):
+    def __init__(self, fast):
         super().__init__()
+        if fast:
+            self.speed = 2
+            color = color=(1, 0.75, 0)
+        else:
+            self.speed = 1
+            color = color=(0.5, 0.375, 0)
+
         self.shape = scene.layers[0].add_star(
             outer_radius=self.radius,
             inner_radius=4,
             points = 6,
-            color=(1, 1/2, 0),
+            color=color,
             )
         self.random_placement()
 
-    def on_collide_shield(self):
-        pass
-
     def update(self, dt):
+        if self.dead:
+            return
         self.move_towards_player()
 
 class Shot(BadGuy):
     radius = 2
-    speed = 5
+    speed = 4
     lifetime = 2
 
     def __init__(self, shooter):
@@ -482,17 +569,23 @@ class Shot(BadGuy):
         sounds.enemy_shot.play()
 
     def update(self, dt):
+        if self.dead:
+            return
         if time > self.expiration_date:
-            self.remove()
+            self.on_death()
             return
         self.move_delta(self.delta)
+
+    def on_collide_shield(self):
+        self.remove()
+
 
 
 class Shooter(BadGuy):
     min_time = 0.5
     max_time = 1.5
 
-    speed = 0.5
+    speed = 0.4
     radius = 8
 
     def __init__(self):
@@ -515,16 +608,21 @@ class Shooter(BadGuy):
         self._next_shot_time()
 
     def update(self, dt):
+        if self.dead:
+            return
         self.move_towards_player()
         if time >= self.next_shot_time:
             self.shoot()
 
 
 
-for i in range(15):
-    enemies.append(Stalker())
+for i in range(3):
+    enemies.append(Stalker(fast=True))
 
-for i in range(8):
+for i in range(7):
+    enemies.append(Stalker(fast=False))
+
+for i in range(5):
     enemies.append(Shooter())
 
 
