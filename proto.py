@@ -282,13 +282,13 @@ class Player:
         if end < start:
             # the shield crosses 180 degrees! handle special
             within_shield = ((start <= theta <= math.pi) or (-math.pi <= theta <= end))
-            print(f"colliding? {within_shield} start {start} theta {theta} math.pi {math.pi}, -math.pi {-math.pi} theta {theta} end {end}")
+            # print(f"colliding? {within_shield} start {start} theta {theta} math.pi {math.pi}, -math.pi {-math.pi} theta {theta} end {end}")
         else:
             within_shield = start <= theta <= end
-            print(f"colliding? {within_shield} start {start} theta {theta} end {end}")
+            # print(f"colliding? {within_shield} start {start} theta {theta} end {end}")
 
         if within_shield:
-            print("player ignore collision with", other)
+            # print("player ignore collision with", other)
             return CollisionType.COLLISION_WITH_SHIELD
 
         self.on_death(other)
@@ -387,8 +387,8 @@ air_resistance = 0.01
 max_speed = 1000.0
 
 # tweaked faster values
-acceleration_scale = 2000
-air_resistance = 0.05
+acceleration_scale = 1800
+air_resistance = 0.07
 max_speed = 100000.0
 
 max_shield_delta = math.tau / 6
@@ -499,8 +499,8 @@ class BadGuy:
     def push_away_from_player(self):
         delta = self.pos - player.pos
         delta2 = Vector2(delta)
-        delta2.scale_to_length(self.body_collision_distance * 1.1)
-        print(f"push away self.pos {self.pos} player.pos {player.pos} delta {delta} delta2 {delta2}")
+        delta2.scale_to_length(self.body_collision_distance * 1.2)
+        # print(f"push away self.pos {self.pos} player.pos {player.pos} delta {delta} delta2 {delta2}")
         self.move_to(player.pos + delta2)
 
     def remove(self):
@@ -524,16 +524,15 @@ class BadGuy:
 
 class Stalker(BadGuy):
     radius = 10
-    speed = 2
 
     def __init__(self, fast):
         super().__init__()
         if fast:
-            self.speed = 2
+            self.speed = 1.75
             color = color=(1, 0.75, 0)
         else:
-            self.speed = 1
-            color = color=(0.5, 0.375, 0)
+            self.speed = 0.8
+            color = color=(0.3, 0.3, 0.8)
 
         self.shape = scene.layers[0].add_star(
             outer_radius=self.radius,
@@ -585,7 +584,7 @@ class Shooter(BadGuy):
     min_time = 0.5
     max_time = 1.5
 
-    speed = 0.4
+    speed = 0.3
     radius = 8
 
     def __init__(self):
@@ -616,11 +615,11 @@ class Shooter(BadGuy):
 
 
 
+for i in range(15):
+    enemies.append(Stalker(fast=False))
+
 for i in range(3):
     enemies.append(Stalker(fast=True))
-
-for i in range(7):
-    enemies.append(Stalker(fast=False))
 
 for i in range(5):
     enemies.append(Shooter())
