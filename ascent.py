@@ -62,6 +62,8 @@ joystick.init()
 
 
 class Skeleton:
+    radius = 12
+
     def __init__(self, scene, pos, angle=0):
         self.scene = scene
 
@@ -273,13 +275,17 @@ def update(dt, keyboard):
     actors = pcs + mobs
     for i, mob1 in enumerate(actors):
         p1 = mob1.pos
+        r1 = mob1.radius
         for mob2 in actors[i + 1:]:
+            r = r1 + mob2.radius
             p2 = mob2.pos
             sep = Vector2(*p2 - p1)
-            if sep.magnitude_squared() < 625:
+            if sep.magnitude_squared() < r * r:
+                mag = sep.magnitude()
+                overlap = r - mag
                 sep.normalize_ip()
-                mob1.pos = p1 - sep
-                mob2.pos = p2 + sep
+                mob1.pos = p1 - sep * overlap * 0.5
+                mob2.pos = p2 + sep * overlap * 0.5
 
 
 
