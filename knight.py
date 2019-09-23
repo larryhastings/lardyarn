@@ -115,6 +115,11 @@ class Knight:
             self.accel += Vector2(v)
             if self.accel.length_squared() > 1:
                 self.accel.normalize_ip()
+        else:
+            v = Vector2(v)
+            if self.v and v:
+                side = self.v.normalize().rotate(90)
+                self.accel += v * abs(side.dot(v.normalize()))
 
     def set_inputs(self, inputs):
         """Pass information from the controller."""
