@@ -41,27 +41,28 @@ scene.smoke = smoke
 
 sparks = scene.layers[1].add_particle_group(
     texture='spark',
-    grow=2,
-    max_age=0.8,
-    drag=0.05,
+    grow=0.1,
+    max_age=0.6,
+    drag=0.7,
 )
 sparks.add_color_stop(0, (2, 2, 0.8, 1))
-sparks.add_color_stop(0.8, (2, 0, 0, 0))
+sparks.add_color_stop(0.3, (2, 1, 0, 1))
+sparks.add_color_stop(0.6, (0, 0, 0, 0))
 scene.sparks = sparks
 
-bones = scene.layers[-1].add_particle_group(
+scene.bones = scene.layers[-1].add_particle_group(
     texture='bone',
     max_age=4,
     drag=0.1,
     spin_drag=0.4,
 )
-skulls = scene.layers[-1].add_particle_group(
+scene.skulls = scene.layers[-1].add_particle_group(
     texture='skull',
     max_age=4,
     drag=0.1,
     spin_drag=0.4,
 )
-for pgroup in (bones, skulls):
+for pgroup in (scene.bones, scene.skulls):
     pgroup.add_color_stop(0, '#bbbbbbff')
     pgroup.add_color_stop(1, '#bbbbbbff')
     pgroup.add_color_stop(4, '#bbbbbb00')

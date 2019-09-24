@@ -108,16 +108,29 @@ class Bomb:
     def explode(self):
         self.world.objects.remove(self)
         self.sprite.delete()
-        for pgroup in (self.scene.sparks, self.scene.smoke):
+        self.pos = self.sprite.pos
+        for pgroup in (self.scene.sparks,):
             pgroup.emit(
                 num=100,
-                pos=self.sprite.pos,
+                pos=self.pos,
                 vel_spread=200,
                 spin_spread=1,
-                size=10,
+                size=8,
                 angle_spread=3,
             )
-
+        expl = self.scene.layers[1].add_sprite(
+            'spark',
+            pos=self.pos,
+        )
+        expl.scale = 0.1
+        animate(
+            expl,
+            'accelerate',
+            duration=0.3,
+            scale=10,
+            color=(1, 1, 1, 0),
+            on_finished=expl.delete
+        )
 
 
 class Knight:
