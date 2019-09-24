@@ -678,4 +678,15 @@ for i in range(5):
     enemies.append(Shooter())
 
 
+SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
+
+@event
+def on_key_down(key, mod):
+    if key == key.F12:
+        if mod & SHIFT:
+            scene.toggle_recording()
+        else:
+            scene.screenshot()
+
+
 run()  # keep this at the end of the file
