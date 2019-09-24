@@ -1,7 +1,6 @@
 import math
 import random
 
-import numpy as np
 from wasabi2d import Vector2, animate
 
 
@@ -10,7 +9,7 @@ class Skeleton:
 
     def __init__(self, world, pos, angle=0):
         self.world = world
-        scene = world.scene
+        scene = self.scene = world.scene
 
         self.body = scene.layers[0].add_sprite(
             'skeleton-body',
@@ -64,3 +63,21 @@ class Skeleton:
         if self.body_animate:
             self.body_animate.stop()
 
+    def die(self):
+        self.delete()
+        self.scene.bones.emit(
+            10,
+            pos=self.pos,
+            vel_spread=80,
+            spin_spread=3,
+            size=6,
+            size_spread=1,
+            angle_spread=6,
+        )
+        self.scene.skulls.emit(
+            1,
+            pos=self.pos,
+            vel_spread=80,
+            spin_spread=1,
+            size=8,
+        )

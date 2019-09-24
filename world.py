@@ -38,8 +38,8 @@ class World:
         self.pcs.append(knight)
         return knight
 
-    def spawn_bomb(self, pos: Vector2, direction: Vector2) -> Bomb:
-        bomb = Bomb(self, pos, direction)
+    def spawn_bomb(self, pos: Vector2, vel: Vector2) -> Bomb:
+        bomb = Bomb(self, pos, vel)
         self.objects.append(bomb)
         return bomb
 
@@ -78,23 +78,7 @@ class World:
             new_mobs = []
             for mob in self.mobs:
                 if line_segment_intersects_circle(start, dir * 40, mob.pos, 20) is not None:
-                    mob.delete()
-                    self.scene.bones.emit(
-                        10,
-                        pos=mob.pos,
-                        vel_spread=80,
-                        spin_spread=3,
-                        size=6,
-                        size_spread=1,
-                        angle_spread=6,
-                    )
-                    self.scene.skulls.emit(
-                        1,
-                        pos=mob.pos,
-                        vel_spread=80,
-                        spin_spread=1,
-                        size=8,
-                    )
+                    mob.die()
                 else:
                     new_mobs.append(mob)
             self.mobs[:] = new_mobs

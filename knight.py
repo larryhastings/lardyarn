@@ -79,10 +79,10 @@ class Bomb:
 
     EXPLODE_TIME = 3
 
-    def __init__(self, world, pos, direction):
+    def __init__(self, world, pos, vel):
         self.world = world
         self.scene = world.scene
-        self.vel = Vector2(direction) * self.SPEED
+        self.vel = vel
         self.sprite = self.scene.layers[0].add_sprite('bomb', pos=pos)
         self.age = 0
 
@@ -131,6 +131,22 @@ class Bomb:
             color=(1, 1, 1, 0),
             on_finished=expl.delete
         )
+        self.apply_damage()
+
+    def apply_damage(self):
+        pos = Vector2(*self.pos)
+        survivors = []
+        for mob in self.world.mobs:
+            sep = mob.pos - pos
+            dmg = 1e5 / sep.magnitude_squared()
+            # print(sep.magnitude(), dmg)
+            if dmg > 30:
+                mob.die()
+            else:
+                # TODO: apply impulse, rather than affecting position
+                mob.pos += sep.normalize() * dmg
+                survivors.append(mob)
+        self.world.mobs[:] = survivors
 
 
 class Knight:
@@ -205,7 +221,8 @@ class Knight:
                 math.sin(self.knight.angle),
             )
             pos = Vector2(*self.knight.pos) + self.radius * direction
-            self.world.spawn_bomb(pos, direction)
+            vel = self.v + self.v.normalize() * Bomb.SPEED
+            self.world.spawn_bomb(pos, vel)
         elif charge:
             self.can_move.lock(1.8)
             self.can_act.lock(1.8)

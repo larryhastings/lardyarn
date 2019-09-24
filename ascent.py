@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-import math
 
-import numpy as np
 from wasabi2d import Scene, event, run, keys
 from wasabi2d.keyboard import keyboard
 import pygame
