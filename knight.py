@@ -106,6 +106,7 @@ class Bomb:
         )
 
     def explode(self):
+        self.scene.camera.screen_shake()
         self.world.objects.remove(self)
         self.sprite.delete()
         self.pos = self.sprite.pos
@@ -221,7 +222,9 @@ class Knight:
                 math.sin(self.knight.angle),
             )
             pos = Vector2(*self.knight.pos) + self.radius * direction
-            vel = self.v + self.v.normalize() * Bomb.SPEED
+            dir = Vector2()
+            dir.from_polar((Bomb.SPEED, math.degrees(self.knight.angle)))
+            vel = self.v + dir
             self.world.spawn_bomb(pos, vel)
         elif charge:
             self.can_move.lock(1.8)
