@@ -43,7 +43,6 @@ class Hand:
         self.update()
 
     def update(self):
-        v = self._angle
         k = self.knight.knight
         a = self.sprite.angle = k.angle + self._angle
 
@@ -73,14 +72,41 @@ class Lockout:
         self.state = True
 
 
+class Bomb:
+    DRAG = 0.15
+    SMOKE_RATE = 20
+    SPEED = 200
+
+    def __init__(self, world, pos, direction):
+        self.world = world
+        self.scene = world.scene
+        self.vel = Vector2(direction) * self.SPEED
+        self.sprite = self.scene.layers[0].add_sprite('bomb', pos=pos)
+
+    def update(self, dt):
+        self.vel *= self.DRAG ** dt
+        self.sprite.pos += self.vel * dt
+
+        return  # todo
+
+        self.scene.sparks.emit(
+            num=np.random.poisson(self.SMOKE_RATE * dt),
+            pos=self.sprite.pos,
+            vel=self.vel * 0.3,
+            spin_spread=1,
+            size=3,
+            angle_spread=3,
+        )
+
 
 class Knight:
     """The player character."""
 
     radius = 12
 
-    def __init__(self, scene, color=(1, 1, 1, 1)):
-        self.scene = scene
+    def __init__(self, world, color=(1, 1, 1, 1)):
+        self.world = world
+        scene = self.scene = world.scene
         shield_sprite = scene.layers[0].add_sprite('shield')
         sword_sprite = scene.layers[1].add_sprite('sword-gripped')
         sword_sprite.color = (1.4, 1.4, 1.4, 1)
@@ -129,7 +155,7 @@ class Knight:
     def set_inputs(self, inputs):
         """Pass information from the controller."""
 
-        defend, attack, charge = inputs
+        defend, attack, charge, bomb = inputs
 
         if not self.can_act:
             return
@@ -138,6 +164,14 @@ class Knight:
             self.can_act.lock(0.3)
             animate(self.shield, duration=0.1, angle=-0.2, radius=8)
             animate(self.sword, duration=0.3, angle=1.3, radius=25)
+        elif bomb:
+            self.can_act.lock(0.1)
+            direction = Vector2(
+                math.cos(self.knight.angle),
+                math.sin(self.knight.angle),
+            )
+            pos = Vector2(*self.knight.pos) + self.radius * direction
+            self.world.spawn_bomb(pos, direction)
         elif charge:
             self.can_move.lock(1.8)
             self.can_act.lock(1.8)
@@ -200,7 +234,7 @@ class Knight:
     # Acceleration of the knight in pixels/s^2
     ACCELERATION = 650
     # Rate the knight is slowed, fraction of speed/s
-    DRAG = 0.01
+    DRAG = 0.2
 
     # Rate of turn, radians / s at full acceleration
     TURN = 10
@@ -270,4 +304,3 @@ class Knight:
         self.shield.delete()
         self.sword.delete()
         self.rhand.delete()
-

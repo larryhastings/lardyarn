@@ -109,16 +109,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="572.74471"
-     inkscape:cy="558.10424"
+     inkscape:zoom="3.0417336"
+     inkscape:cx="279.60229"
+     inkscape:cy="566.02385"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1535"
-     inkscape:window-height="876"
-     inkscape:window-x="65"
-     inkscape:window-y="24"
+     inkscape:window-width="3070"
+     inkscape:window-height="1752"
+     inkscape:window-x="130"
+     inkscape:window-y="48"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata7">
@@ -287,7 +287,10 @@
     </g>
     <g
        id="g4329"
-       transform="matrix(0,1,-1,0,709.61221,18.612213)">
+       transform="matrix(0,1,-1,0,709.61221,18.612213)"
+       inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/bomb.png"
+       inkscape:export-xdpi="30"
+       inkscape:export-ydpi="30">
       <circle
          r="11.5"
          cy="365.36221"
@@ -368,7 +371,7 @@
        inkscape:export-xdpi="89.999954"
        inkscape:export-ydpi="89.999954" />
     <g
-       transform="matrix(0,1,-1,0,601.73259,341.19469)"
+       transform="matrix(0,1,-1,0,555.08042,343.9799)"
        id="g4405"
        inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/knight-head.png"
        inkscape:export-xdpi="30"

@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 import math
-import random
 
 import numpy as np
-from wasabi2d import Scene, event, run, Vector2, keys, animate
+from wasabi2d import Scene, event, run, keys
 from wasabi2d.keyboard import keyboard
 import pygame
 from pygame import joystick
 
 from knight import Knight
+from world import World
 
 
 scene = Scene(title="Ascent - PyWeek 28")
@@ -60,73 +60,13 @@ for pgroup in (bones, skulls):
 joystick.init()
 
 
-
-class Skeleton:
-    radius = 12
-
-    def __init__(self, scene, pos, angle=0):
-        self.scene = scene
-
-        self.body = scene.layers[0].add_sprite(
-            'skeleton-body',
-            pos=pos,
-            angle=angle
-        )
-        self.body_animate = None
-        self.head = scene.layers[0].add_sprite(
-            'skeleton-head',
-            pos=pos,
-            angle=angle
-        )
-
-        self.target = random.choice(pcs)
-        self.bob = 1.0
-        self.gait_speed = random.uniform(0.3, 0.5)
-        self.gait_step = random.uniform(1.07, 1.2)
-
-    SPEED = 30
-
-    @property
-    def pos(self):
-        return Vector2(*self.head.pos)
-
-    @pos.setter
-    def pos(self, v):
-        self.head.pos = self.body.pos = v
-
-    def update(self, dt):
-        to_target = Vector2(*self.target.pos - self.head.pos)
-        dist, angle_deg = to_target.as_polar()
-        angle_to_target = math.radians(angle_deg)
-        self.head.angle = angle_to_target
-
-        if dist > 30:
-            self.head.pos += to_target.normalize() * self.SPEED * dt
-            self.body.pos = self.head.pos
-            self.bob += self.gait_speed * dt
-            if self.bob > self.gait_step:
-                self.bob = 1.0
-            self.head.scale = self.bob
-            self.body.scale = 1 + 0.5 * (self.bob - 1.0)
-
-        self.body_animate = animate(
-            self.body, duration=0.3, angle=angle_to_target
-        )
-
-    def delete(self):
-        self.head.delete()
-        self.body.delete()
-        if self.body_animate:
-            self.body_animate.stop()
-
-
 @dataclass
 class JoyController:
     pc: Knight
     stick: joystick.Joystick
 
     # buttons to map into what inputs
-    BUTTON_MAP = [5, 1, 0]
+    BUTTON_MAP = [5, 1, 0, 2]
 
     def __post_init__(self):
         self.stick.init()
@@ -145,7 +85,7 @@ class JoyController:
 class KeyboardController:
     pc: Knight
 
-    KEY_MAP = [keys.Z, keys.X, keys.C]
+    KEY_MAP = [keys.Z, keys.X, keys.C, keys.V]
 
     def update(self):
         ax = ay = 0
@@ -168,8 +108,9 @@ assert len(KeyboardController.KEY_MAP) == len(JoyController.BUTTON_MAP), \
         "Mismatch on number of inputs for controller types."
 
 
-player1 = Knight(scene)
-pcs = [player1]
+world = World(scene)
+
+player1 = world.spawn_pc()
 controllers = []
 
 if joystick.get_count() > 0:
@@ -184,109 +125,23 @@ else:
 if joystick.get_count() > 1:
     print("2-player game")
     player1.pos.x *= 0.5
-    player2 = Knight(scene, color=(0.4, 0.9, 1.1, 1))
+    player2 = world.spawn_pc(color=(0.4, 0.9, 1.1, 1))
     player2.pos.x += player1.pos.x
-    pcs.append(player2)
     controllers.append(
         JoyController(player2, joystick.Joystick(1))
     )
 else:
     print("1-player game")
 
-
-mobs = []
-
-def spawn_mobs(num):
-    xs = np.random.uniform(30, scene.width - 30, size=num)
-    ys = np.random.uniform(30, scene.height - 30, size=num)
-    angles = np.random.uniform(-math.pi, math.pi, size=num)
-    for x, y, angle in zip(xs, ys, angles):
-        mobs.append(
-            Skeleton(scene, Vector2(x, y), angle)
-        )
-
-spawn_mobs(20)
-
-
-def line_segment_intersects_circle(start, along, center, radius):
-    Q = center                  # Centre of circle
-    r = radius                  # Radius of circle
-    P1 = start      # Start of line segment
-    V = along
-    a = np.dot(V, V)
-    b = 2 * np.dot(V, P1 - Q)
-    c = np.dot(P1, P1) + np.dot(Q, Q) - 2 * np.dot(P1, Q) - r * r
-    disc = b * b - 4 * a * c
-    if disc < 0:
-        return None
-    sqrt_disc = math.sqrt(disc)
-    t1 = (-b + sqrt_disc) / (2 * a)
-    t2 = (-b - sqrt_disc) / (2 * a)
-    if not (0 <= t1 <= 1 or 0 <= t2 <= 1):
-        return None
-    t = max(0, min(1, - b / (2 * a)))
-    return P1 + t * V
+world.spawn_mobs(num=20)
 
 
 @event
 def update(dt, keyboard):
     for controller in controllers:
         controller.update()
-    for pc in pcs:
-        pc.update(dt)
 
-    for pc in pcs:
-        if not pc.sword.attack:
-            continue
-
-        pos = pc.pos
-        sword = pc.sword.angle
-        dir = Vector2(np.cos(sword), np.sin(sword))
-        start = pos + dir * 12
-
-        new_mobs = []
-        for mob in mobs:
-            if line_segment_intersects_circle(start, dir * 40, mob.pos, 20) is not None:
-                mob.delete()
-                bones.emit(
-                    10,
-                    pos=mob.pos,
-                    vel_spread=80,
-                    spin_spread=3,
-                    size=6,
-                    size_spread=1,
-                    angle_spread=6,
-                )
-                skulls.emit(
-                    1,
-                    pos=mob.pos,
-                    vel_spread=80,
-                    spin_spread=1,
-                    size=8,
-                )
-            else:
-                new_mobs.append(mob)
-        mobs[:] = new_mobs
-
-    for mob in mobs:
-        mob.update(dt)
-
-    # Push actors apart. This is O(n^2)
-    actors = pcs + mobs
-    for i, mob1 in enumerate(actors):
-        p1 = mob1.pos
-        r1 = mob1.radius
-        for mob2 in actors[i + 1:]:
-            r = r1 + mob2.radius
-            p2 = mob2.pos
-            sep = Vector2(*p2 - p1)
-            if sep.magnitude_squared() < r * r:
-                mag = sep.magnitude()
-                overlap = r - mag
-                sep.normalize_ip()
-                mob1.pos = p1 - sep * overlap * 0.5
-                mob2.pos = p2 + sep * overlap * 0.5
-
+    world.update(dt)
 
 
 SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
@@ -299,7 +154,6 @@ def on_key_down(key, mod):
             scene.toggle_recording()
         else:
             scene.screenshot()
-
 
 
 run()
