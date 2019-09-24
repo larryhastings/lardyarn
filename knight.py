@@ -87,12 +87,10 @@ class Bomb:
         self.vel *= self.DRAG ** dt
         self.sprite.pos += self.vel * dt
 
-        return  # todo
-
         self.scene.sparks.emit(
             num=np.random.poisson(self.SMOKE_RATE * dt),
             pos=self.sprite.pos,
-            vel=self.vel * 0.3,
+            vel_spread=30,
             spin_spread=1,
             size=3,
             angle_spread=3,

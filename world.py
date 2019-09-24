@@ -79,7 +79,7 @@ class World:
             for mob in self.mobs:
                 if line_segment_intersects_circle(start, dir * 40, mob.pos, 20) is not None:
                     mob.delete()
-                    bones.emit(
+                    self.scene.bones.emit(
                         10,
                         pos=mob.pos,
                         vel_spread=80,
@@ -88,7 +88,7 @@ class World:
                         size_spread=1,
                         angle_spread=6,
                     )
-                    skulls.emit(
+                    self.scene.skulls.emit(
                         1,
                         pos=mob.pos,
                         vel_spread=80,

@@ -39,6 +39,16 @@ smoke.add_color_stop(0.6, '#888888ff')
 smoke.add_color_stop(0.8, '#88888800')
 scene.smoke = smoke
 
+sparks = scene.layers[1].add_particle_group(
+    texture='spark',
+    grow=2,
+    max_age=0.8,
+    drag=0.05,
+)
+sparks.add_color_stop(0, (1, 1, 0.8, 1))
+sparks.add_color_stop(0.8, (1, 0, 0, 0))
+scene.sparks = sparks
+
 bones = scene.layers[-1].add_particle_group(
     texture='bone',
     max_age=4,
