@@ -84,6 +84,19 @@ class CollisionType(enum.IntEnum):
     COLLISION_WITH_SHIELD = 2
     COLLISION_WITH_SWORD = 3
 
+
+TAU = 2 * math.pi
+
+
+def angle_diff(a, b):
+    """Subtract angle b from angle a.
+
+    Return the difference in the smallest direction.
+    """
+    diff = (a - b) % TAU
+    return min(diff, diff - TAU, key=abs)
+
+
 scene = Scene(1024, 768)
 pause = False
 
@@ -184,6 +197,18 @@ class Player:
         if self.movement.magnitude() > max_speed:
             self.movement.scale_to_length(max_speed)
 
+        # Rotate to face the direction of acceleration
+        TURN = 12  # radians / s at full acceleration
+
+        da, accel_angle = acceleration.as_polar()
+        accel_angle = math.radians(accel_angle)
+        delta = angle_diff(accel_angle, self.shield_angle)
+        if delta < 0:
+            self.shield_angle += max(dt * da * -TURN, delta)
+        else:
+            self.shield_angle += min(dt * da * TURN, delta)
+        self.shield.angle = self.shield_angle = normalize_angle(self.shield_angle)
+
         self.pos += self.movement * dt
         self.shield.pos = self.shape.pos = self.pos
 
@@ -215,16 +240,16 @@ class Player:
             self.shield.angle = self.shield_angle
             assert -math.pi <= self.shield.angle <= math.pi
 
-        mouse_movement = pygame.mouse.get_rel()
-        if mouse_movement[0] or mouse_movement[1]:
-            update_shield("mouse", Vector2(mouse_movement))
+#        mouse_movement = pygame.mouse.get_rel()
+#        if mouse_movement[0] or mouse_movement[1]:
+#            update_shield("mouse", Vector2(mouse_movement))
 
-        direction = Vector2()
-        for key, vector in shield_keys.items():
-            if keyboard[key]:
-                direction += vector
-        if direction:
-            update_shield("keyboard", direction)
+#        direction = Vector2()
+#        for key, vector in shield_keys.items():
+#            if keyboard[key]:
+#                direction += vector
+#        if direction:
+#            update_shield("keyboard", direction)
 
         if use_right_stick:
             stick_rx = stick.get_axis(3)
@@ -239,13 +264,13 @@ class Player:
         #         pressed.add(i)
         # if pressed:
         #     print(pressed)
-        if use_face_buttons:
-            direction = Vector2()
-            for button, vector in shield_buttons.items():
-                if stick.get_button(button):
-                    direction += vector
-            if direction:
-                update_shield("buttons", direction)
+#        if use_face_buttons:
+#            direction = Vector2()
+#            for button, vector in shield_buttons.items():
+#                if stick.get_button(button):
+#                    direction += vector
+#            if direction:
+#                update_shield("buttons", direction)
 
     def on_collision_sword(self, other):
         """
