@@ -78,6 +78,7 @@ class Bomb:
     SPEED = 200
 
     EXPLODE_TIME = 3
+    BLINK_TIME = 2.3
 
     def __init__(self, world, pos, vel):
         self.world = world
@@ -94,6 +95,11 @@ class Bomb:
 
         if self.age > self.EXPLODE_TIME:
             self.explode()
+            return
+
+        if self.age > self.BLINK_TIME:
+            # We indicate the bomb is about to explode by making the
+            # sparks stop ominously.
             return
 
         self.scene.sparks.emit(
