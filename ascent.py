@@ -45,8 +45,8 @@ sparks = scene.layers[1].add_particle_group(
     max_age=0.8,
     drag=0.05,
 )
-sparks.add_color_stop(0, (1, 1, 0.8, 1))
-sparks.add_color_stop(0.8, (1, 0, 0, 0))
+sparks.add_color_stop(0, (2, 2, 0.8, 1))
+sparks.add_color_stop(0.8, (2, 0, 0, 0))
 scene.sparks = sparks
 
 bones = scene.layers[-1].add_particle_group(

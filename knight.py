@@ -77,15 +77,24 @@ class Bomb:
     SMOKE_RATE = 20
     SPEED = 200
 
+    EXPLODE_TIME = 3
+
     def __init__(self, world, pos, direction):
         self.world = world
         self.scene = world.scene
         self.vel = Vector2(direction) * self.SPEED
         self.sprite = self.scene.layers[0].add_sprite('bomb', pos=pos)
+        self.age = 0
 
     def update(self, dt):
         self.vel *= self.DRAG ** dt
         self.sprite.pos += self.vel * dt
+
+        self.age += dt
+
+        if self.age > self.EXPLODE_TIME:
+            self.explode()
+            return
 
         self.scene.sparks.emit(
             num=np.random.poisson(self.SMOKE_RATE * dt),
@@ -95,6 +104,20 @@ class Bomb:
             size=3,
             angle_spread=3,
         )
+
+    def explode(self):
+        self.world.objects.remove(self)
+        self.sprite.delete()
+        for pgroup in (self.scene.sparks, self.scene.smoke):
+            pgroup.emit(
+                num=100,
+                pos=self.sprite.pos,
+                vel_spread=200,
+                spin_spread=1,
+                size=10,
+                angle_spread=3,
+            )
+
 
 
 class Knight:
