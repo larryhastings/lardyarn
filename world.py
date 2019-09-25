@@ -3,7 +3,7 @@ import math
 from wasabi2d import Vector2
 
 from knight import Knight, Bomb
-from mobs import Skeleton
+from mobs import Skeleton, Mage
 
 
 def line_segment_intersects_circle(start, along, center, radius):
@@ -49,7 +49,7 @@ class World:
         angles = np.random.uniform(-math.pi, math.pi, size=num)
         for x, y, angle in zip(xs, ys, angles):
             self.mobs.append(
-                Skeleton(self, Vector2(x, y), angle)
+                Mage(self, Vector2(x, y), angle)
             )
 
     def update(self, dt):
