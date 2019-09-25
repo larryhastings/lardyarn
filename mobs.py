@@ -137,11 +137,12 @@ class Skeleton:
         if self.body_animate:
             self.body_animate.stop()
 
-    def die(self):
+    def die(self, vel=(0, 0)):
         self.delete()
         self.scene.bones.emit(
             10,
             pos=self.pos,
+            vel=vel,
             vel_spread=80,
             spin_spread=3,
             size=6,
@@ -151,6 +152,7 @@ class Skeleton:
         self.scene.skulls.emit(
             1,
             pos=self.pos,
+            vel=vel,
             vel_spread=80,
             spin_spread=1,
             size=8,

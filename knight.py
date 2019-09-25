@@ -146,9 +146,8 @@ class Bomb:
         for mob in self.world.mobs:
             sep = mob.pos - pos
             dmg = 1e5 / sep.magnitude_squared()
-            # print(sep.magnitude(), dmg)
             if dmg > 30:
-                mob.die()
+                mob.die(sep * 4)
             else:
                 # TODO: apply impulse, rather than affecting position
                 mob.pos += sep.normalize() * dmg

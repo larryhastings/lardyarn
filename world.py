@@ -78,7 +78,8 @@ class World:
             new_mobs = []
             for mob in self.mobs:
                 if line_segment_intersects_circle(start, dir * 40, mob.pos, 20) is not None:
-                    mob.die()
+                    sep = mob.pos - pc.pos
+                    mob.die(pc.v + sep.normalize() * 30)
                 else:
                     new_mobs.append(mob)
             self.mobs[:] = new_mobs
