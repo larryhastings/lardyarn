@@ -81,8 +81,13 @@ from pygame import joystick
 class CollisionType(enum.IntEnum):
     NO_COLLISION = 0
     COLLISION_WITH_PLAYER = 1
-    COLLISION_WITH_SHIELD = 2
-    COLLISION_WITH_SWORD = 3
+    COLLISION_WITH_ZONE = 2
+
+class Layers(enum.IntEnum):
+    ENTITIES_LAYER = 0
+    BULLETS_LAYER = 1
+    ZONE_LAYER = 2
+    TEXT_LAYER = 3
 
 
 TAU = 2 * math.pi
@@ -111,69 +116,136 @@ def normalize_angle(theta):
         theta += math.tau
     return theta
 
+
+max_speed_measured = 687.8719129907139
+
 class Player:
-    body_radius = 10
-    sword_radius = 25
-    radius = sword_radius
-    shield_arc = math.tau / 4 # how far the shield extends
-    shield_angle = 0
     dead = False
+    zone_angle = 0
+    body_radius = 10
+    # sword_radius = 25
+    # radius = sword_radius
+    # shield_arc = math.tau / 4 # how far the shield extends
+    # zone_angle = 0
+    zone_arc = math.tau / 4 # how far the shield extends
+    zone_radius = 15
+    outer_radius = body_radius + zone_radius
+    radius = outer_radius
+
+    # max speed measured: 590 and change
+    zone_activation_speed = 350
+    zone_grace_period = 0.1
+    zone_grace_timeout = 0
+
+    zone_center_distance = body_radius + (zone_radius / 2)
+    zone_flash_until = 0
 
     def __init__(self):
         self.pos = Vector2(screen_center)
-        self.shape = scene.layers[0].add_circle(
+        self.shape = scene.layers[Layers.ENTITIES_LAYER].add_circle(
             radius=self.body_radius,
             pos=self.pos,
             color=(0, 1/2, 0),
             )
 
-        # self.shield = scene.layers[1].add_sprite(
-        #     'swordandshield',
-        #     pos=(scene.width / 2, scene.height / 2),
-        #     )
-        inner = []
-        outer = []
-        # radius_delta = 2
-        inner_radius = self.body_radius - 3
-        outer_radius = self.body_radius + 1
-        # lame, range only handles ints. duh!
-        start = math.degrees(-self.shield_arc / 2)
-        stop = math.degrees(self.shield_arc / 2)
-        step = (stop - start) / 12
-        theta = start
-        def append(theta):
-            # even lamer: from_polar()
-            # MUST BE CALLED ON AN INSTANCE
-            # TAKES AN ARGUMENT, WHICH MUST BE A Vector2
-            # IGNORES ITS OWN x AND y, OVERWRITING THEM
-            # WTF
-            v = Vector2(inner_radius, theta)
-            v.from_polar(v)
-            inner.append(tuple(v))
-
-            v = Vector2(outer_radius, theta)
-            v.from_polar(v)
-            outer.append(tuple(v))
-
-        while theta < stop:
-            append(theta)
-            theta += step
-        append(stop)
-
-        # now make the sword pointy!
-        middle = len(outer) // 2
-        v = Vector2(outer[middle])
-        radius, theta = v.as_polar()
-        v.from_polar((self.sword_radius, theta))
-        outer[middle] = tuple(v)
-
-        inner.reverse()
-        outer.extend(inner)
-        vertices = outer
-        self.shield = scene.layers[1].add_polygon(vertices, fill=True, color=(1, 1, 1))
         self.movement = Vector2()
 
+
+        # new "zone of destruction"
+        self.normal_zone_color = (0.3, 0.3, 0.8)
+        self.flashing_zone_color = (0.9, 0.9, 1)
+        if 0:
+            # draw zone as arc
+            vertices = []
+            points_on_zone = 12
+            # lame, range only handles ints. duh!
+            start = math.degrees(-self.zone_arc / 2)
+            stop = math.degrees(self.zone_arc / 2)
+            step = (stop - start) / points_on_zone
+            theta = start
+
+            def append(theta):
+                # even lamer: from_polar()
+                # MUST BE CALLED ON AN INSTANCE
+                # TAKES AN ARGUMENT, WHICH MUST BE A Vector2
+                # IGNORES ITS OWN x AND y, OVERWRITING THEM
+                # WTF
+                v = Vector2(self.zone_radius, theta)
+                v.from_polar(v)
+                v.x += self.body_radius
+                vertices.append(tuple(v))
+            while theta < stop:
+                append(theta)
+                theta += step
+        else:
+            # draw zone as circl3e, for quick prototyping
+            # draw zone as arc
+            vertices = []
+            for theta in range(0, 360, 10):
+                v = Vector2(self.zone_radius / 2, theta)
+                v.from_polar(v)
+                v.x += self.zone_center_distance
+                vertices.append(tuple(v))
+
+        self.zone_layer = scene.layers[Layers.ZONE_LAYER]
+        self.zone = self.zone_layer.add_polygon(vertices, fill=True, color=self.normal_zone_color)
+        self.zone_center = self.pos + Vector2(self.zone_center_distance, 0)
+        self.zone_layer_active = False
+        self.zone_layer.visible = False
+
+        if 0:
+            # old sword & shield
+
+            # self.shield = scene.layers[Layers.ZONE_LAYER].add_sprite(
+            #     'swordandshield',
+            #     pos=(scene.width / 2, scene.height / 2),
+            #     )
+            inner = []
+            outer = []
+            # radius_delta = 2
+            inner_radius = self.body_radius - 3
+            outer_radius = self.body_radius + 1
+            # lame, range only handles ints. duh!
+            start = math.degrees(-self.shield_arc / 2)
+            stop = math.degrees(self.shield_arc / 2)
+            step = (stop - start) / 12
+            theta = start
+            def append(theta):
+                # even lamer: from_polar()
+                # MUST BE CALLED ON AN INSTANCE
+                # TAKES AN ARGUMENT, WHICH MUST BE A Vector2
+                # IGNORES ITS OWN x AND y, OVERWRITING THEM
+                # WTF
+                v = Vector2(inner_radius, theta)
+                v.from_polar(v)
+                inner.append(tuple(v))
+
+                v = Vector2(outer_radius, theta)
+                v.from_polar(v)
+                outer.append(tuple(v))
+
+            while theta < stop:
+                append(theta)
+                theta += step
+            append(stop)
+
+            # now make the sword pointy!
+            middle = len(outer) // 2
+            v = Vector2(outer[middle])
+            radius, theta = v.as_polar()
+            v.from_polar((self.sword_radius, theta))
+            outer[middle] = tuple(v)
+
+            inner.reverse()
+            outer.extend(inner)
+            vertices = outer
+            self.shield = scene.layers[Layers.ZONE_LAYER].add_polygon(vertices, fill=True, color=(1, 1, 1))
+
     def update(self, dt, keyboard):
+        if self.zone_flash_until and (self.zone_flash_until < time):
+            self.zone_flash_until = 0
+            self.zone.color = self.normal_zone_color
+
         acceleration = Vector2()
         for key, vector in movement_keys.items():
             if keyboard[key]:
@@ -202,43 +274,69 @@ class Player:
 
         da, accel_angle = acceleration.as_polar()
         accel_angle = math.radians(accel_angle)
-        delta = angle_diff(accel_angle, self.shield_angle)
+        delta = angle_diff(accel_angle, self.zone_angle)
         if delta < 0:
-            self.shield_angle += max(dt * da * -TURN, delta)
+            self.zone_angle += max(dt * da * -TURN, delta)
         else:
-            self.shield_angle += min(dt * da * TURN, delta)
-        self.shield.angle = self.shield_angle = normalize_angle(self.shield_angle)
+            self.zone_angle += min(dt * da * TURN, delta)
+        self.zone.angle = self.zone_angle = normalize_angle(self.zone_angle)
 
         self.pos += self.movement * dt
-        self.shield.pos = self.shape.pos = self.pos
+        self.zone.pos = self.shape.pos = self.pos
+
+        current_speed = self.movement.magnitude()
+        zone_currently_active = current_speed >= self.zone_activation_speed
+        if zone_currently_active:
+            if not self.zone_layer_active:
+                # print("STATE 1: ZONE ACTIVE")
+                self.zone_layer.visible = self.zone_layer_active = True
+                self.zone_grace_timeout = 0
+        else:
+            if self.zone_layer_active:
+                if not self.zone_grace_timeout:
+                    # print("STATE 2: STARTING ZONE GRACE TIMEOUT")
+                    self.zone_grace_timeout = time + self.zone_grace_period
+                elif time < self.zone_grace_timeout:
+                    pass
+                else:
+                    # print("STATE 3: ZONE TIMED OUT")
+                    self.zone_grace_timeout = 0
+                    self.zone_layer.visible = self.zone_layer_active = False
+
+        global max_speed_measured
+        new_max = max(max_speed_measured, current_speed)
+        if new_max > max_speed_measured:
+            max_speed_measured = new_max
+            print("new max speed measured:", max_speed_measured)
 
         def update_shield(source, vector):
             dist, degrees = vector.as_polar()
             angle = math.radians(degrees)
 
-            delta = abs(self.shield_angle - angle)
+            delta = abs(self.zone_angle - angle)
             # krazy kode to avoid the "sword goes crazy when you flip from 179° to 181°" problem
             # aka the "+math.pi to -math.pi" problem
             if delta > math.pi:
-                if angle < self.shield_angle:
+                if angle < self.zone_angle:
                     angle += math.tau
                 else:
                     angle -= math.tau
-                delta = abs(self.shield_angle - angle)
+                delta = abs(self.zone_angle - angle)
                 assert delta <= math.pi
 
             if delta <= max_shield_delta:
-                self.shield_angle = angle
-            elif angle < self.shield_angle:
-                self.shield_angle -= max_shield_delta
+                self.zone_angle = angle
+            elif angle < self.zone_angle:
+                self.zone_angle -= max_shield_delta
             else:
-                self.shield_angle += max_shield_delta
+                self.zone_angle += max_shield_delta
 
-            self.shield_angle = normalize_angle(self.shield_angle)
+            self.zone_angle = normalize_angle(self.zone_angle)
+            assert -math.pi <= self.zone.angle <= math.pi
 
             # update the shape
-            self.shield.angle = self.shield_angle
-            assert -math.pi <= self.shield.angle <= math.pi
+            # self.shield.angle = self.zone_angle
+            self.zone.angle = self.zone_angle
 
 #        mouse_movement = pygame.mouse.get_rel()
 #        if mouse_movement[0] or mouse_movement[1]:
@@ -272,19 +370,17 @@ class Player:
 #            if direction:
 #                update_shield("buttons", direction)
 
-    def on_collision_sword(self, other):
+        self.zone_center = self.pos + Vector2(math.cos(self.zone_angle) * self.zone_center_distance, math.sin(self.zone_angle) * self.zone_center_distance)
+
+    def on_collision_zone(self, other):
         """
         self and body are within sword radius.  are they colliding?
         Returns enum indicating type of collision.
         """
-        # first test: is the sword inside it?
-        sword_delta = Vector2(self.sword_radius, math.degrees(self.shield_angle))
-        sword_delta.from_polar(sword_delta)
-        sword_pos = self.pos + sword_delta
-        delta = other.pos - sword_pos
-        if delta.magnitude_squared() < other.radius_squared:
-            return CollisionType.COLLISION_WITH_SWORD
-        return CollisionType.NO_COLLISION
+        self.zone_flash_until = time + 0.1
+        self.zone.color = self.flashing_zone_color
+        sounds.zap.play()
+        return CollisionType.COLLISION_WITH_ZONE
 
 
     def on_collision_body(self, other):
@@ -292,35 +388,8 @@ class Player:
         self and body are within body radius. they're colliding, but how?
         Returns enum indicating type of collision.
         """
-        global pause
         if self.dead:
             return CollisionType.NO_COLLISION
-
-        # what's it touching, the player or the shield?
-        #
-        # is the angle to other within the two angles
-        # of the shield's edges?
-        #
-        # note: we guarantee when we calculate it that
-        # -math.pi <= self.shield_angle <= math.pi
-        delta = other.pos - self.pos
-        magnitude, theta = delta.as_polar()
-        theta = normalize_angle(math.radians(theta))
-
-        start = normalize_angle(self.shield_angle - self.shield_arc)
-        end   = normalize_angle(self.shield_angle + self.shield_arc)
-
-        if end < start:
-            # the shield crosses 180 degrees! handle special
-            within_shield = ((start <= theta <= math.pi) or (-math.pi <= theta <= end))
-            # print(f"colliding? {within_shield} start {start} theta {theta} math.pi {math.pi}, -math.pi {-math.pi} theta {theta} end {end}")
-        else:
-            within_shield = start <= theta <= end
-            # print(f"colliding? {within_shield} start {start} theta {theta} end {end}")
-
-        if within_shield:
-            # print("player ignore collision with", other)
-            return CollisionType.COLLISION_WITH_SHIELD
 
         self.on_death(other)
         return CollisionType.COLLISION_WITH_PLAYER
@@ -335,7 +404,7 @@ class Player:
         # self.shape.delete()
         # self.shield.delete()
 
-        self.game_over_text = scene.layers[2].add_label(
+        self.game_over_text = scene.layers[Layers.TEXT_LAYER].add_label(
             text = "YOU DIED\nGAME OVER\nPRESS ESCAPE TO QUIT",
             fontsize = 44.0,
             align = "center",
@@ -351,7 +420,7 @@ class Player:
         # self.shape.delete()
         # self.shield.delete()
 
-        self.game_won_text = scene.layers[2].add_label(
+        self.game_won_text = scene.layers[Layers.TEXT_LAYER].add_label(
             text = "A WINNER IS YOU!\ngame over\npress Escape to quit",
             fontsize = 44.0,
             align = "center",
@@ -490,10 +559,12 @@ class BadGuy:
         self.id = bad_guy_id
         bad_guy_id += 1
         self.radius_squared = self.radius ** 2
-        self.sword_collision_distance = (self.radius + player.sword_radius)
-        self.sword_collision_distance_squared = self.sword_collision_distance ** 2
+        self.outer_collision_distance = (self.radius + player.outer_radius)
+        self.outer_collision_distance_squared = self.outer_collision_distance ** 2
         self.body_collision_distance = (self.radius + player.body_radius)
         self.body_collision_distance_squared = self.body_collision_distance ** 2
+        self.zone_collision_distance = (self.radius + player.zone_radius)
+        self.zone_collision_distance_squared = self.zone_collision_distance ** 2
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.id} ({repr_float(self.pos.x)}, {repr_float(self.pos.y)})>"
@@ -518,26 +589,38 @@ class BadGuy:
         self.shape.pos = self.pos = v
         vector_to_player = player.pos - self.pos
         distance_squared = vector_to_player.magnitude_squared()
-        touching_sword = distance_squared <= self.sword_collision_distance_squared
-        touching_body = distance_squared <= self.body_collision_distance_squared
-        if touching_sword:
-            collision = player.on_collision_sword(self)
-            if collision == CollisionType.COLLISION_WITH_SWORD:
-                self.on_collide_sword()
-
-        if self.dead:
-            return
-
-        if touching_body:
-            collision = player.on_collision_body(self)
-            assert collision != CollisionType.COLLISION_WITH_SWORD
-            if collision == CollisionType.NO_COLLISION:
-                return
-            if collision == CollisionType.COLLISION_WITH_PLAYER:
-                self.on_collide_player()
+        intersect_outer_radius = distance_squared <= self.outer_collision_distance_squared
+        if intersect_outer_radius:
+            # print(f"{self} interecting outer radius")
+            # are we intersecting with the zone?
+            if not player.zone_layer.visible:
+                # print("    zone inactive (player is too slow)")
+                pass
             else:
-                assert collision == CollisionType.COLLISION_WITH_SHIELD
-                self.on_collide_shield()
+                # print(f"    player center {player.pos} zone angle {player.zone_angle} zone center {player.zone_center}")
+                vector_to_zone = player.zone_center - self.pos
+                intersect_zone_radius = vector_to_zone.magnitude_squared() < self.zone_collision_distance_squared
+                # print(f"    interecting zone? {intersect_zone_radius}")
+                if intersect_zone_radius:
+                    collision = player.on_collision_zone(self)
+                    if collision == CollisionType.COLLISION_WITH_ZONE:
+                        self.on_collide_zone()
+
+            if self.dead:
+                # print(f"    dead!")
+                return
+
+            intersect_body_radius = distance_squared <= self.body_collision_distance_squared
+            # print(f"    interecting body? {intersect_body_radius}")
+
+            if intersect_body_radius:
+                collision = player.on_collision_body(self)
+                assert collision != CollisionType.COLLISION_WITH_ZONE
+                if collision == CollisionType.NO_COLLISION:
+                    return
+
+                assert collision == CollisionType.COLLISION_WITH_PLAYER
+                self.on_collide_player()
 
     def move_delta(self, delta):
         v = self.pos + delta
@@ -563,10 +646,10 @@ class BadGuy:
     def on_collide_player(self):
         pass
 
-    def on_collide_shield(self):
-        self.push_away_from_player()
+    # def on_collide_shield(self):
+    #     self.push_away_from_player()
 
-    def on_collide_sword(self):
+    def on_collide_zone(self):
         self.on_death()
 
     def on_death(self):
@@ -585,9 +668,9 @@ class Stalker(BadGuy):
             color = color=(1, 0.75, 0)
         else:
             self.speed = 0.8
-            color = color=(0.3, 0.3, 0.8)
+            color = color=(0.8, 0.3, 0.3)
 
-        self.shape = scene.layers[0].add_star(
+        self.shape = scene.layers[Layers.ENTITIES_LAYER].add_star(
             outer_radius=self.radius,
             inner_radius=4,
             points = 6,
@@ -611,7 +694,7 @@ class Shot(BadGuy):
         self.pos = Vector2(shooter.shape.pos[0], shooter.shape.pos[1])
         self.delta = player.pos - self.pos
         self.delta.scale_to_length(self.speed)
-        self.layer = scene.layers[-1]
+        self.layer = scene.layers[Layers.BULLETS_LAYER]
         self.shape = self.layer.add_circle(
             radius=self.radius,
             pos=self.pos,
@@ -642,7 +725,7 @@ class Shooter(BadGuy):
 
     def __init__(self):
         super().__init__()
-        self.shape = scene.layers[0].add_circle(
+        self.shape = scene.layers[Layers.ENTITIES_LAYER].add_circle(
             radius=self.radius,
             color=(1/2, 0, 1),
             )
