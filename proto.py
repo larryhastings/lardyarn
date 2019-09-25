@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+
+print("[INFO] Importing packages...")
+
+
 import enum
 import sys
 import math
@@ -58,25 +63,30 @@ sys.stdout = None
 import pygame
 sys.stdout = stdout
 
+print("[INFO] Initializing sound...")
+
 devicename=settings.get('mixer devicename')
 pygame.mixer.pre_init(devicename=devicename)
 pygame.init()
 try:
     pygame.mixer.init()
 except pygame.error as e:
-    print("Warning: sound not working")
-    print("    ", e)
+    print("[WARN] Couldn't get exclusive access to sound device!  Sound disabled.")
+    print("[WARN]", e)
     # call pre-init again with no devicename
     # this will reset back to the default
     # which ALSO won't work, but pygame works better this way
     pygame.mixer.pre_init(devicename=None)
     pygame.mixer.init()
 
+print("[INFO] Finishing imports...")
+
 import wasabi2d
 from wasabi2d import Scene, run, event, clock, Vector2, keys, sounds
 import pygame.mouse
 from pygame import joystick
 
+print("[INFO] Initializing runtime...")
 
 class CollisionType(enum.IntEnum):
     NO_COLLISION = 0
@@ -101,13 +111,6 @@ def angle_diff(a, b):
     diff = (a - b) % TAU
     return min(diff, diff - TAU, key=abs)
 
-
-scene = Scene(1024, 768)
-pause = False
-
-# The rest of your code goes here.
-
-screen_center = Vector2(scene.width / 2, scene.height / 2)
 
 def normalize_angle(theta):
     if theta > math.pi:
@@ -397,7 +400,7 @@ class Player:
 
     def on_death(self, other):
         global pause
-        print("PLAYER HIT", other, "BANG!")
+        print(f"[WARN] Player hit {other}!  Game over!")
         self.dead = True
         pause = True
         sounds.hit.play()
@@ -413,7 +416,7 @@ class Player:
 
     def on_win(self):
         global pause
-        print("PLAYER WINS!")
+        print("[INFO] Player wins!  Game over!")
         self.dead = True
         pause = True
         # sounds.hit.play()
@@ -430,9 +433,6 @@ class Player:
 
 
 
-
-
-player = Player()
 
 
 movement_keys = {
@@ -461,7 +461,8 @@ if which_joystick < joystick.get_count():
     stick = joystick.Joystick(which_joystick)
     stick.init()
     axes = stick.get_numaxes()
-    print("joystick AXES", axes)
+    noun = "axis" if axes == 1 else "axes"
+    print(f"[INFO] {axes} joystick analogue {noun}")
     use_left_stick = (
         (max(settings['move x axis'], settings['move y axis']) < axes)
         and
@@ -472,27 +473,30 @@ if which_joystick < joystick.get_count():
         (min(settings['aim x axis'], settings['aim y axis']) >= 0))
 
     buttons = stick.get_numbuttons()
-    print("joystick BUTTONS", buttons)
+    noun = "button" if buttons == 1 else "buttons"
+    print(f"[INFO] {buttons} joystick {noun}")
     use_face_buttons = (
         (max(settings['button up'], settings['button down'], settings['button left'], settings['button right']) < buttons)
         and
         (min(settings['button up'], settings['button down'], settings['button left'], settings['button right']) >= 0))
 
     hats = stick.get_numhats()
-    print("joystick HATS", hats)
+    noun = "hat" if hats == 1 else "hats"
+    print(f"[INFO] {hats} joystick {noun}")
     use_hat = hats >= 1
     use_hat = (
         (settings['hat'] < hats)
         and
         (settings['hat'] >= 0))
 else:
-    print(f"insufficient joysticks!  we want joystick #{which_joystick} but only {joystick.get_count()} joysticks detected.")
+    print(f"[WARN] Insufficient joysticks!")
+    print(f"[WARN] We want joystick #{which_joystick}, but only {joystick.get_count()} joysticks detected.")
     use_left_stick = use_right_stick = use_face_buttons = use_hat = False
 
-print("use left stick?", use_left_stick)
-print("use right stick?", use_right_stick)
-print("use hat?", use_hat)
-print("use face buttons for shield?", use_face_buttons)
+print("[INFO] use left stick?", use_left_stick)
+print("[INFO] use right stick?", use_right_stick)
+print("[INFO] use hat?", use_hat)
+print("[INFO] use face buttons for shield?", use_face_buttons)
 
 
 shield_buttons = {
@@ -524,7 +528,7 @@ def update(dt, keyboard):
     global time
 
     if keyboard.escape:
-        sys.exit("quittin' time!")
+        sys.exit("[INFO] Quittin' time!")
 
     if pause:
         return
@@ -706,10 +710,10 @@ class Stalker(BadGuy):
         # at which point they start moving towards the random spot again.
         delta = player.pos - self.pos
         distance_to_player = delta.magnitude()
-        if self.head_to_spot:
-            self.head_to_spot = distance_to_player > self.spot_low_watermark
-        else:
-            self.head_to_spot = distance_to_player < self.spot_high_watermark
+
+        threshold = self.spot_low_watermark if self.head_to_spot else self.spot_high_watermark
+        self.head_to_spot = distance_to_player > threshold
+
         if self.head_to_spot:
             self.move_towards_spot()
         else:
@@ -782,18 +786,6 @@ class Shooter(BadGuy):
             self.shoot()
 
 
-if len(sys.argv) > 1 and sys.argv[1] == "1":
-    enemies.append(Stalker(fast=False))
-else:
-    for i in range(15):
-        enemies.append(Stalker(fast=False))
-
-    for i in range(3):
-        enemies.append(Stalker(fast=True))
-
-    for i in range(5):
-        enemies.append(Shooter())
-
 
 SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
 
@@ -805,5 +797,32 @@ def on_key_down(key, mod):
         else:
             scene.screenshot()
 
+
+
+print("[INFO] Creating scene...")
+
+scene = Scene(1024, 768)
+pause = False
+
+screen_center = Vector2(scene.width / 2, scene.height / 2)
+
+print("[INFO] Spawning player and enemies...")
+
+player = Player()
+
+
+if len(sys.argv) > 1 and sys.argv[1] == "1":
+    enemies.append(Stalker(fast=True))
+else:
+    for i in range(15):
+        enemies.append(Stalker(fast=False))
+
+    for i in range(3):
+        enemies.append(Stalker(fast=True))
+
+    for i in range(5):
+        enemies.append(Shooter())
+
+print("[INFO] Fight!")
 
 run()  # keep this at the end of the file
