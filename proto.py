@@ -117,7 +117,7 @@ def normalize_angle(theta):
     return theta
 
 
-max_speed_measured = 687.8719129907139
+max_speed_measured = 691.0
 
 class Player:
     dead = False
@@ -257,13 +257,13 @@ class Player:
                 acceleration += Vector2(x, -y)
 
         if use_left_stick:
-            stick_vector = Vector2(
+            acceleration += Vector2(
                 stick.get_axis(0),
                 stick.get_axis(1)
             )
-            stick_magnitude = stick_vector.magnitude()
-            if stick_magnitude >= 1e-2:
-                acceleration += stick_vector.normalize() * min(1.0, stick_magnitude)
+
+        if acceleration.magnitude() > 1.0:
+            acceleration.normalize_ip()
 
         self.movement = self.movement * air_resistance ** dt + acceleration_scale * acceleration * dt
         if self.movement.magnitude() > max_speed:
@@ -511,7 +511,7 @@ max_speed = 1000.0
 # tweaked faster values
 acceleration_scale = 1800
 air_resistance = 0.07
-max_speed = 100000.0
+max_speed = 700 # max observed speed is 691 anyway
 
 max_shield_delta = math.tau / 6
 
@@ -661,6 +661,14 @@ class BadGuy:
 class Stalker(BadGuy):
     radius = 10
 
+    def move_towards_spot(self):
+        pos = player.pos + self.spot_offset
+        delta = pos - self.pos
+        if delta.magnitude() > self.speed:
+            delta.scale_to_length(self.speed)
+        self.move_to(self.pos + delta)
+
+
     def __init__(self, fast):
         super().__init__()
         if fast:
@@ -677,11 +685,35 @@ class Stalker(BadGuy):
             color=color,
             )
         self.random_placement()
+        self.spot_high_watermark = 140
+        self.spot_low_watermark = 90
+        self.spot_radius_min = 30
+        self.spot_radius_max = 70
+        self.spot_offset = Vector2(random.randint(self.spot_radius_min, self.spot_radius_max), 0)
+        self.spot_offset.rotate_ip(random.randint(0, 360))
+        self.head_to_spot = True
 
     def update(self, dt):
         if self.dead:
             return
-        self.move_towards_player()
+
+        # Stalkers pick a random spot near the player
+        #
+        # they move towards that spot until they get "close enough" to the player
+        # at which point they head directly towards the player
+        #
+        # until they get "too far" from the player,
+        # at which point they start moving towards the random spot again.
+        delta = player.pos - self.pos
+        distance_to_player = delta.magnitude()
+        if self.head_to_spot:
+            self.head_to_spot = distance_to_player > self.spot_low_watermark
+        else:
+            self.head_to_spot = distance_to_player < self.spot_high_watermark
+        if self.head_to_spot:
+            self.move_towards_spot()
+        else:
+            self.move_towards_player()
 
 class Shot(BadGuy):
     radius = 2
@@ -750,15 +782,17 @@ class Shooter(BadGuy):
             self.shoot()
 
 
-
-for i in range(15):
+if len(sys.argv) > 1 and sys.argv[1] == "1":
     enemies.append(Stalker(fast=False))
+else:
+    for i in range(15):
+        enemies.append(Stalker(fast=False))
 
-for i in range(3):
-    enemies.append(Stalker(fast=True))
+    for i in range(3):
+        enemies.append(Stalker(fast=True))
 
-for i in range(5):
-    enemies.append(Shooter())
+    for i in range(5):
+        enemies.append(Shooter())
 
 
 SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
