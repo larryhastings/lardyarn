@@ -1,22 +1,5 @@
-from dataclasses import dataclass
-
-from wasabi2d import Scene, event, run, keys, Vector2
-from pygame import joystick
-
-
-scene = Scene()
-
-
-
-triangle = [
-    Vector2(100, 400),
-    Vector2(300, 500),
-    Vector2(200, 600)
-]
-
-scene.layers[0].add_polygon(triangle, fill=False, color='yellow')
-
-circ = scene.layers[0].add_circle(radius=20, fill=False, color='red')
+#!/usr/bin/env python3
+from wasabi2d import Vector2
 
 
 def polygon_collision(poly, circle):
@@ -31,10 +14,25 @@ def polygon_collision(poly, circle):
     return True
 
 
-@event
-def on_mouse_move(pos):
-    circ.pos = pos
-    circ.color = 'red' if polygon_collision(triangle, circ) else 'green'
+if __name__ == "__main__":
 
+    from wasabi2d import Scene, event, run, keys, Vector2
+    from pygame import joystick
 
-run()
+    scene = Scene()
+
+    triangle = [
+        Vector2(100, 400),
+        Vector2(300, 500),
+        Vector2(200, 600)
+    ]
+
+    scene.layers[0].add_polygon(triangle, fill=False, color='yellow')
+    circ = scene.layers[0].add_circle(radius=20, fill=False, color='red')
+
+    @event
+    def on_mouse_move(pos):
+        circ.pos = pos
+        circ.color = 'red' if polygon_collision(triangle, circ) else 'green'
+
+    run()
