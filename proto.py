@@ -92,14 +92,16 @@ print("[INFO] Initializing runtime...")
 
 class CollisionType(enum.IntEnum):
     NO_COLLISION = 0
-    COLLISION_WITH_PLAYER = 1
-    COLLISION_WITH_ZONE = 2
+    COLLISION_WITH_WALL = 1
+    COLLISION_WITH_PLAYER = 2
+    COLLISION_WITH_ZONE = 3
 
 class Layers(enum.IntEnum):
-    ENTITIES_LAYER = 0
-    BULLETS_LAYER = 1
-    ZONE_LAYER = 2
-    TEXT_LAYER = 3
+    WALL_LAYER = 0
+    ENTITIES_LAYER = 1
+    BULLETS_LAYER = 2
+    ZONE_LAYER = 3
+    TEXT_LAYER = 4
 
 
 TAU = 2 * math.pi
@@ -136,6 +138,9 @@ class Player:
     zone_radius = 15
     outer_radius = body_radius + zone_radius
     radius = outer_radius
+    # HACK: radius_squared is only used by collision with wall
+    # and for that we ignore the zone and just use the body
+    radius_squared = body_radius * body_radius
 
     # max speed measured: 590 and change
     zone_activation_speed = 350
@@ -144,6 +149,8 @@ class Player:
 
     zone_center_distance = body_radius + (zone_radius / 2)
     zone_flash_until = 0
+
+    message = None
 
     def __init__(self):
         self.pos = Vector2(screen_center)
@@ -197,6 +204,14 @@ class Player:
         self.zone_layer_active = False
         self.zone_layer.visible = False
 
+        self.message = scene.layers[Layers.TEXT_LAYER].add_label(
+            text = ".",
+            fontsize = 44.0,
+            align = "center",
+            pos = screen_center,
+            )
+        self.message.text = ""
+
         if 0:
             # old sword & shield
 
@@ -245,11 +260,20 @@ class Player:
             vertices = outer
             self.shield = scene.layers[Layers.ZONE_LAYER].add_polygon(vertices, fill=True, color=(1, 1, 1))
 
+    def close(self):
+        self.shape.delete()
+        self.zone.delete()
+        if self.message:
+            # del self.message
+            # self.message.delete()
+            # self.message.pos = Vector2(-10000, -10000)
+            self.message.text = ""
+
     def compute_collision_with_bad_guy(self, bad_guy):
         if self.dead:
             return CollisionType.NO_COLLISION
 
-        distance_vector = self.pos - bad_guy.pos
+        distance_vector     = self.pos - bad_guy.pos
         distance_squared = distance_vector.magnitude_squared()
         intersect_outer_radius = distance_squared <= bad_guy.outer_collision_distance_squared
         if not intersect_outer_radius:
@@ -314,9 +338,48 @@ class Player:
             self.zone_angle += min(dt * da * TURN, delta)
         self.zone.angle = self.zone_angle = normalize_angle(self.zone_angle)
 
-        old_pos = Vector2(self.pos)
-        self.pos += self.movement * dt
-        if self.pos == old_pos:
+        starting_pos = Vector2(self.pos)
+        movement_this_frame = self.movement * dt
+        self.pos += movement_this_frame
+        if self.pos == starting_pos:
+            return
+
+        hit_walls = []
+        for wall in walls:
+            if wall.collide_with_entity(self) == CollisionType.COLLISION_WITH_WALL:
+                hit_walls.append(wall)
+
+        if hit_walls:
+            # we hit one or more walls!
+            # replay a % of the movement so we move as much as possible without hitting.
+            factor = 1.0
+            cumulative_factor = 0
+            working_pos = starting_pos
+            for i in range(10):
+                factor /= 2
+                try_factor = cumulative_factor + factor
+                partial_movement = Vector2(movement_this_frame) * try_factor
+
+                self.pos = starting_pos + partial_movement
+                hit = False
+                for wall in hit_walls:
+                    hit = wall.collide_with_entity(self) == CollisionType.COLLISION_WITH_WALL
+                    if hit:
+                        break
+                if hit:
+                    self.pos = working_pos
+                else:
+                    cumulative_factor = try_factor
+                    working_pos = self.pos
+
+            # and zero out the movement vector of all directions in which we hit the wall
+            # if self.pos.x != old_pos.x:
+            #     self.movement.x = 0
+            # if self.pos.y != old_pos.y:
+            #     self.movement.y = 0
+
+            # screech to a halt!
+            self.movement = Vector2()
             return
 
         self.zone.pos = self.shape.pos = self.pos
@@ -389,7 +452,7 @@ class Player:
         v3delta.from_polar(v3delta)
         v3 = v1 + v3delta
         self.zone_triangle = [v1, v2, v3]
-        print(f"player pos {self.pos} :: zone angle {self.zone_angle} triangle {self.zone_triangle}")
+        # print(f"player pos {self.pos} :: zone angle {self.zone_angle} triangle {self.zone_triangle}")
 
 #        mouse_movement = pygame.mouse.get_rel()
 #        if mouse_movement[0] or mouse_movement[1]:
@@ -451,12 +514,7 @@ class Player:
         # self.shape.delete()
         # self.shield.delete()
 
-        self.game_over_text = scene.layers[Layers.TEXT_LAYER].add_label(
-            text = "YOU DIED\nGAME OVER\nPRESS ESCAPE TO QUIT",
-            fontsize = 44.0,
-            align = "center",
-            pos = screen_center,
-            )
+        self.message.text = "YOU DIED\nGAME OVER\nPRESS SPACE TO PLAY AGAIN\nPRESS ESCAPE TO QUIT"
 
     def on_win(self):
         global pause
@@ -467,12 +525,7 @@ class Player:
         # self.shape.delete()
         # self.shield.delete()
 
-        self.game_won_text = scene.layers[Layers.TEXT_LAYER].add_label(
-            text = "A WINNER IS YOU!\ngame over\npress Escape to quit",
-            fontsize = 44.0,
-            align = "center",
-            pos = screen_center,
-            )
+        self.message.text = "A WINNER IS YOU!\ngame over\npress Space to play again\npress Escape to quit"
         sounds.game_won.play()
 
 
@@ -566,6 +619,7 @@ max_shield_delta = math.tau / 6
 time = 0
 
 enemies = []
+walls = []
 
 @event
 def update(dt, keyboard):
@@ -599,6 +653,81 @@ def repr_float(f):
     right = right[0]
     return f"{left}.{right}"
 
+
+def circle_rect_collision(
+    circle_pos: Vector2,
+    circle_radius_squared: float,
+
+    upper_left: Vector2,
+    lower_right: Vector2):
+
+    test = Vector2(circle_pos)
+
+    if test.x < upper_left.x:
+        test.x = upper_left.x
+    elif test.x > lower_right.x:
+        test.x = lower_right.x
+
+    if test.y < upper_left.y:
+        test.y = upper_left.y
+    elif test.y > lower_right.y:
+        test.y = lower_right.y
+
+    delta = circle_pos - test
+    return delta.magnitude_squared() <= circle_radius_squared
+
+
+class Wall:
+    # remember that in Wasabi2d (0, 0) is in the upper-left.
+    # x grows as we move right.
+    # y grows as we move down.
+    def __init__(self, upper_left, lower_right, visible=True):
+        global bad_guy_id
+        self.id = bad_guy_id
+        bad_guy_id += 1
+
+        self.upper_left = upper_left
+        self.lower_right = lower_right
+        self.width = lower_right.x - upper_left.x
+        self.height = lower_right.y - upper_left.y
+        self.pos = Vector2(upper_left)
+        self.pos.x += self.width / 2
+        self.pos.y += self.height / 2
+        # print(f"WALL ul {upper_left} lr {lower_right} pos {self.pos} wxh {self.width} {self.height}")
+
+        if visible:
+            self.layer = scene.layers[Layers.WALL_LAYER]
+            self.shape = self.layer.add_rect(
+                pos=self.pos,
+                width=self.width,
+                height=self.height,
+                color=(0.25, 0.25, 0.25),
+                fill = True,
+            )
+        else:
+            self.shape = self.layer = None
+
+    def _close(self):
+        if self.shape:
+            self.shape.delete()
+            self.shape = None
+
+    def close(self):
+        walls.remove(self)
+        self._close()
+
+    def update(self, dt):
+        pass
+
+    def collide_with_entity(self, entity):
+        if circle_rect_collision(
+            entity.pos, player.radius_squared,
+            self.upper_left,
+            self.lower_right):
+            return CollisionType.COLLISION_WITH_WALL
+        return CollisionType.NO_COLLISION
+
+
 class BadGuy:
 
     def __init__(self):
@@ -614,14 +743,25 @@ class BadGuy:
         self.zone_collision_distance = (self.radius + player.zone_radius)
         self.zone_collision_distance_squared = self.zone_collision_distance ** 2
 
+    def _close(self):
+        self.shape.delete()
+
+    def close(self):
+        enemies.remove(self)
+        self._close()
+
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.id} ({repr_float(self.pos.x)}, {repr_float(self.pos.y)})>"
 
     min_random_distance = 150
     min_random_distance_squared = min_random_distance ** 2
+    random_placement_inset = 20
     def random_placement(self):
         while True:
-            pos = Vector2(random.randint(0, scene.width), random.randint(0, scene.height))
+            offset = self.random_placement_inset
+            pos = Vector2(
+                random.randint(offset, scene.width - offset),
+                random.randint(offset, scene.height - offset))
             delta = player.pos - pos
             distance_squared = delta.magnitude_squared()
             if distance_squared > self.min_random_distance_squared:
@@ -698,10 +838,6 @@ class BadGuy:
         # print(f"push away self.pos {self.pos} player.pos {player.pos} delta {delta} delta2 {delta2}")
         self.move_to(player.pos + delta2)
 
-    def remove(self):
-        enemies.remove(self)
-        self.shape.delete()
-
     def on_collide_player(self):
         pass
 
@@ -713,7 +849,7 @@ class BadGuy:
 
     def on_death(self):
         self.dead = True
-        self.remove()
+        self.close()
 
 
 
@@ -852,6 +988,10 @@ def on_key_down(key, mod):
         else:
             scene.screenshot()
 
+    if key == key.SPACE:
+        close_game()
+        new_game()
+
 
 
 print("[INFO] Creating scene...")
@@ -861,23 +1001,57 @@ pause = False
 
 screen_center = Vector2(scene.width / 2, scene.height / 2)
 
-print("[INFO] Spawning player and enemies...")
+def new_game():
+    print("[INFO] Spawning player and enemies...")
 
-player = Player()
+    global player
+    player = Player()
 
+    global pause
+    pause = False
 
-if len(sys.argv) > 1 and sys.argv[1] == "1":
-    enemies.append(Stalker(fast=True))
-else:
-    for i in range(15):
-        enemies.append(Stalker(fast=False))
+    global bad_guy_id
+    bad_guy_id = 1
 
-    for i in range(3):
+    assert not enemies
+
+    if len(sys.argv) > 1 and sys.argv[1] == "1":
         enemies.append(Stalker(fast=True))
+    else:
+        for i in range(15):
+            enemies.append(Stalker(fast=False))
 
-    for i in range(5):
-        enemies.append(Shooter())
+        for i in range(3):
+            enemies.append(Stalker(fast=True))
 
-print("[INFO] Fight!")
+        for i in range(5):
+            enemies.append(Shooter())
+
+    walls.append(Wall(Vector2(0, 0), Vector2(scene.width, 20)))
+    walls.append(Wall(Vector2(0, scene.height - 20), Vector2(scene.width, scene.height)))
+
+    walls.append(Wall(Vector2(0, 0), Vector2(20, scene.height)))
+    walls.append(Wall(Vector2(scene.width - 20, 0), Vector2(scene.width, scene.height)))
+
+    # and a wall in the middle to play with
+    walls.append(Wall(Vector2(600, 200), Vector2(800, 400)))
+
+    print("[INFO] Fight!")
+
+def close_game():
+    global player
+    player.close()
+    player = None
+
+    for enemy in enemies:
+        enemy._close()
+    enemies.clear()
+
+    for wall in walls:
+        wall._close()
+    walls.clear()
+
+
+new_game()
 
 run()  # keep this at the end of the file
