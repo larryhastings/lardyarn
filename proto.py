@@ -85,6 +85,8 @@ import wasabi2d
 from wasabi2d import Scene, run, event, clock, Vector2, keys, sounds
 import pygame.mouse
 from pygame import joystick
+from triangle_intersect import polygon_collision
+
 
 print("[INFO] Initializing runtime...")
 
@@ -153,13 +155,12 @@ class Player:
 
         self.movement = Vector2()
 
-
         # new "zone of destruction"
         self.normal_zone_color = (0.3, 0.3, 0.8)
         self.flashing_zone_color = (0.9, 0.9, 1)
-        if 0:
+        if 1:
             # draw zone as arc
-            vertices = []
+            vertices = [Vector2(self.body_radius, 0)]
             points_on_zone = 12
             # lame, range only handles ints. duh!
             start = math.degrees(-self.zone_arc / 2)
@@ -244,6 +245,35 @@ class Player:
             vertices = outer
             self.shield = scene.layers[Layers.ZONE_LAYER].add_polygon(vertices, fill=True, color=(1, 1, 1))
 
+    def compute_collision_with_bad_guy(self, bad_guy):
+        if self.dead:
+            return CollisionType.NO_COLLISION
+
+        distance_vector = self.pos - bad_guy.pos
+        distance_squared = distance_vector.magnitude_squared()
+        intersect_outer_radius = distance_squared <= bad_guy.outer_collision_distance_squared
+        if not intersect_outer_radius:
+            return CollisionType.NO_COLLISION
+
+        # bad_guy intersecting with the zone?
+        if self.zone_layer.visible:
+            if polygon_collision(self.zone_triangle, bad_guy):
+                return CollisionType.COLLISION_WITH_ZONE
+            # # print(f"    player center {player.pos} zone angle {player.zone_angle} zone center {player.zone_center}")
+            # vector_to_zone = player.zone_center - self.pos
+            # intersect_zone_radius = vector_to_zone.magnitude_squared() < self.zone_collision_distance_squared
+            # # print(f"    interecting zone? {intersect_zone_radius}")
+            # if intersect_zone_radius:
+            #     collision = player.on_collision_zone(self)
+            #     if collision == CollisionType.COLLISION_WITH_ZONE:
+            #         self.on_collide_zone()
+
+        intersect_body_radius = distance_squared <= bad_guy.body_collision_distance_squared
+        # print(f"    interecting body? {intersect_body_radius}")
+
+        if intersect_body_radius:
+            return CollisionType.COLLISION_WITH_PLAYER
+
     def update(self, dt, keyboard):
         if self.zone_flash_until and (self.zone_flash_until < time):
             self.zone_flash_until = 0
@@ -284,9 +314,14 @@ class Player:
             self.zone_angle += min(dt * da * TURN, delta)
         self.zone.angle = self.zone_angle = normalize_angle(self.zone_angle)
 
+        old_pos = Vector2(self.pos)
         self.pos += self.movement * dt
+        if self.pos == old_pos:
+            return
+
         self.zone.pos = self.shape.pos = self.pos
 
+        # (slowly) rotate zone to align with movement vector
         current_speed = self.movement.magnitude()
         zone_currently_active = current_speed >= self.zone_activation_speed
         if zone_currently_active:
@@ -341,6 +376,21 @@ class Player:
             # self.shield.angle = self.zone_angle
             self.zone.angle = self.zone_angle
 
+        self.zone_center = self.pos + Vector2(math.cos(self.zone_angle) * self.zone_center_distance, math.sin(self.zone_angle) * self.zone_center_distance)
+
+        # cache zone triangle for collision detection purposes
+        v1 = Vector2(self.body_radius, math.degrees(self.zone_angle))
+        v1.from_polar(v1)
+        v1 += self.pos
+        v2delta = Vector2(self.zone_radius, math.degrees(self.zone_angle - self.zone_arc / 2))
+        v2delta.from_polar(v2delta)
+        v2 = v1 + v2delta
+        v3delta = Vector2(self.zone_radius, math.degrees(self.zone_angle + self.zone_arc / 2))
+        v3delta.from_polar(v3delta)
+        v3 = v1 + v3delta
+        self.zone_triangle = [v1, v2, v3]
+        print(f"player pos {self.pos} :: zone angle {self.zone_angle} triangle {self.zone_triangle}")
+
 #        mouse_movement = pygame.mouse.get_rel()
 #        if mouse_movement[0] or mouse_movement[1]:
 #            update_shield("mouse", Vector2(mouse_movement))
@@ -352,12 +402,12 @@ class Player:
 #        if direction:
 #            update_shield("keyboard", direction)
 
-        if use_right_stick:
-            stick_rx = stick.get_axis(3)
-            stick_ry = stick.get_axis(4)
-            # print(stick.get_axis(2), stick.get_axis(3), stick.get_axis(4), stick.get_axis(5))
-            if stick_rx or stick_ry:
-                update_shield("right stick", Vector2(stick_rx, stick_ry))
+        # if use_right_stick:
+        #     stick_rx = stick.get_axis(3)
+        #     stick_ry = stick.get_axis(4)
+        #     # print(stick.get_axis(2), stick.get_axis(3), stick.get_axis(4), stick.get_axis(5))
+        #     if stick_rx or stick_ry:
+        #         update_shield("right stick", Vector2(stick_rx, stick_ry))
 
         # pressed = set()
         # for i in range(buttons):
@@ -373,7 +423,6 @@ class Player:
 #            if direction:
 #                update_shield("buttons", direction)
 
-        self.zone_center = self.pos + Vector2(math.cos(self.zone_angle) * self.zone_center_distance, math.sin(self.zone_angle) * self.zone_center_distance)
 
     def on_collision_zone(self, other):
         """
@@ -383,7 +432,6 @@ class Player:
         self.zone_flash_until = time + 0.1
         self.zone.color = self.flashing_zone_color
         sounds.zap.play()
-        return CollisionType.COLLISION_WITH_ZONE
 
 
     def on_collision_body(self, other):
@@ -391,11 +439,7 @@ class Player:
         self and body are within body radius. they're colliding, but how?
         Returns enum indicating type of collision.
         """
-        if self.dead:
-            return CollisionType.NO_COLLISION
-
         self.on_death(other)
-        return CollisionType.COLLISION_WITH_PLAYER
 
 
     def on_death(self, other):
@@ -591,40 +635,51 @@ class BadGuy:
     def move_to(self, v):
         # print(f"{time:8}", self, "move to", v)
         self.shape.pos = self.pos = v
-        vector_to_player = player.pos - self.pos
-        distance_squared = vector_to_player.magnitude_squared()
-        intersect_outer_radius = distance_squared <= self.outer_collision_distance_squared
-        if intersect_outer_radius:
-            # print(f"{self} interecting outer radius")
-            # are we intersecting with the zone?
-            if not player.zone_layer.visible:
-                # print("    zone inactive (player is too slow)")
-                pass
-            else:
-                # print(f"    player center {player.pos} zone angle {player.zone_angle} zone center {player.zone_center}")
-                vector_to_zone = player.zone_center - self.pos
-                intersect_zone_radius = vector_to_zone.magnitude_squared() < self.zone_collision_distance_squared
-                # print(f"    interecting zone? {intersect_zone_radius}")
-                if intersect_zone_radius:
-                    collision = player.on_collision_zone(self)
-                    if collision == CollisionType.COLLISION_WITH_ZONE:
-                        self.on_collide_zone()
 
-            if self.dead:
-                # print(f"    dead!")
-                return
+        collision = player.compute_collision_with_bad_guy(self)
 
-            intersect_body_radius = distance_squared <= self.body_collision_distance_squared
-            # print(f"    interecting body? {intersect_body_radius}")
+        if collision == CollisionType.COLLISION_WITH_ZONE:
+            player.on_collision_zone(self)
+            self.on_collide_zone()
+        elif collision == CollisionType.COLLISION_WITH_PLAYER:
+            player.on_collision_body(self)
+            self.on_collide_player()
 
-            if intersect_body_radius:
-                collision = player.on_collision_body(self)
-                assert collision != CollisionType.COLLISION_WITH_ZONE
-                if collision == CollisionType.NO_COLLISION:
+        if 0:
+            vector_to_player = player.pos - self.pos
+            distance_squared = vector_to_player.magnitude_squared()
+            intersect_outer_radius = distance_squared <= self.outer_collision_distance_squared
+            if intersect_outer_radius:
+                # print(f"{self} interecting outer radius")
+                # are we intersecting with the zone?
+                if not player.zone_layer.visible:
+                    # print("    zone inactive (player is too slow)")
+                    pass
+                else:
+                    # print(f"    player center {player.pos} zone angle {player.zone_angle} zone center {player.zone_center}")
+                    vector_to_zone = player.zone_center - self.pos
+                    intersect_zone_radius = vector_to_zone.magnitude_squared() < self.zone_collision_distance_squared
+                    # print(f"    interecting zone? {intersect_zone_radius}")
+                    if intersect_zone_radius:
+                        collision = player.on_collision_zone(self)
+                        if collision == CollisionType.COLLISION_WITH_ZONE:
+                            self.on_collide_zone()
+
+                if self.dead:
+                    # print(f"    dead!")
                     return
 
-                assert collision == CollisionType.COLLISION_WITH_PLAYER
-                self.on_collide_player()
+                intersect_body_radius = distance_squared <= self.body_collision_distance_squared
+                # print(f"    interecting body? {intersect_body_radius}")
+
+                if intersect_body_radius:
+                    collision = player.on_collision_body(self)
+                    assert collision != CollisionType.COLLISION_WITH_ZONE
+                    if collision == CollisionType.NO_COLLISION:
+                        return
+
+                    assert collision == CollisionType.COLLISION_WITH_PLAYER
+                    self.on_collide_player()
 
     def move_delta(self, delta):
         v = self.pos + delta
