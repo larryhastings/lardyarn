@@ -9,7 +9,11 @@ from knight import Knight
 from world import World
 
 
-scene = Scene(title="Ascent - PyWeek 28")
+scene = Scene(
+    title="Ascent - PyWeek 28",
+    width=1024,
+    height=768
+)
 scene.background = (0.2, 0.2, 0.2)
 scene.layers[0].set_effect(
     'dropshadow',
