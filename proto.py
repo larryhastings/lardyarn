@@ -372,19 +372,45 @@ class Player:
                     cumulative_factor = try_factor
                     working_pos = self.pos
 
+            final_pos = self.pos
+
             # and zero out the movement vector of all directions in which we hit the wall
             # if self.pos.x != old_pos.x:
             #     self.movement.x = 0
             # if self.pos.y != old_pos.y:
             #     self.movement.y = 0
 
-            # screech to a halt!
+            if 0:
+                # test zeroing out each component of movement_this_frame
+                # if the resulting movement vector doesn't result in hitting the wall,
+                # leave it in, otherwise zero it out.
+                test_vector = Vector2(movement_this_frame)
+                test_vector.x = 0
+                self.pos = starting_pos + test_vector
+                hit = False
+                for wall in hit_walls:
+                    if wall.collide_with_entity(self) == CollisionType.COLLISION_WITH_WALL:
+                        hit = True
+                        break
+                if hit:
+                    self.movement.x = 0
+
+                test_vector = Vector2(movement_this_frame)
+                test_vector.y = 0
+                self.pos = starting_pos + test_vector
+                hit = False
+                for wall in hit_walls:
+                    if wall.collide_with_entity(self) == CollisionType.COLLISION_WITH_WALL:
+                        hit = True
+                        break
+                if hit:
+                    self.movement.y = 0
+                # print(f"hit walls {hit_walls} movement {self.movement}")
+
             self.movement = Vector2()
-            return
 
         self.zone.pos = self.shape.pos = self.pos
 
-        # (slowly) rotate zone to align with movement vector
         current_speed = self.movement.magnitude()
         zone_currently_active = current_speed >= self.zone_activation_speed
         if zone_currently_active:
@@ -514,7 +540,7 @@ class Player:
         # self.shape.delete()
         # self.shield.delete()
 
-        self.message.text = "YOU DIED\nGAME OVER\nPRESS SPACE TO PLAY AGAIN\nPRESS ESCAPE TO QUIT"
+        self.message.text = "YOU DIED\nGAME OVER\npress Space or joystick button to play again\npress Escape to quit"
 
     def on_win(self):
         global pause
@@ -525,7 +551,7 @@ class Player:
         # self.shape.delete()
         # self.shield.delete()
 
-        self.message.text = "A WINNER IS YOU!\ngame over\npress Space to play again\npress Escape to quit"
+        self.message.text = "A WINNER IS YOU!\ngame over\npress Space or joystick button to play again\npress Escape to quit"
         sounds.game_won.play()
 
 
@@ -629,6 +655,10 @@ def update(dt, keyboard):
         sys.exit("[INFO] Quittin' time!")
 
     if pause:
+        for button in (0, 1, 2, 3):
+            if stick.get_button(button):
+                close_game()
+                new_game()
         return
 
     time += dt
@@ -707,6 +737,9 @@ class Wall:
         else:
             self.shape = self.layer = None
 
+    def __repr__(self):
+        return f"<Wall ({repr_float(self.upper_left.x)}, {repr_float(self.upper_left.y)} x ({repr_float(self.lower_right.x)}, {repr_float(self.lower_right.y)}>"
+
     def _close(self):
         if self.shape:
             self.shape.delete()
@@ -759,14 +792,23 @@ class BadGuy:
     def random_placement(self):
         while True:
             offset = self.random_placement_inset
-            pos = Vector2(
+            self.pos = Vector2(
                 random.randint(offset, scene.width - offset),
                 random.randint(offset, scene.height - offset))
-            delta = player.pos - pos
+
+            # don't go near the player
+            delta = player.pos - self.pos
             distance_squared = delta.magnitude_squared()
-            if distance_squared > self.min_random_distance_squared:
-                self.pos = pos
+            if distance_squared < self.min_random_distance_squared:
+                continue
+
+            # don't intersect with any walls
+            for wall in walls:
+                if wall.collide_with_entity(self) != CollisionType.NO_COLLISION:
+                    break
+            else:
                 break
+            continue
 
     speed = 1
     radius = 1
@@ -988,7 +1030,7 @@ def on_key_down(key, mod):
         else:
             scene.screenshot()
 
-    if key == key.SPACE:
+    if pause and (key == key.SPACE):
         close_game()
         new_game()
 
@@ -1013,7 +1055,17 @@ def new_game():
     global bad_guy_id
     bad_guy_id = 1
 
-    assert not enemies
+    assert not (enemies or walls)
+
+    walls.append(Wall(Vector2(0, 0), Vector2(scene.width, 20)))
+    walls.append(Wall(Vector2(0, scene.height - 20), Vector2(scene.width, scene.height)))
+
+    walls.append(Wall(Vector2(0, 0), Vector2(20, scene.height)))
+    walls.append(Wall(Vector2(scene.width - 20, 0), Vector2(scene.width, scene.height)))
+
+    # and a wall in the middle to play with
+    walls.append(Wall(Vector2(600, 200), Vector2(800, 400)))
+
 
     if len(sys.argv) > 1 and sys.argv[1] == "1":
         enemies.append(Stalker(fast=True))
@@ -1026,15 +1078,6 @@ def new_game():
 
         for i in range(5):
             enemies.append(Shooter())
-
-    walls.append(Wall(Vector2(0, 0), Vector2(scene.width, 20)))
-    walls.append(Wall(Vector2(0, scene.height - 20), Vector2(scene.width, scene.height)))
-
-    walls.append(Wall(Vector2(0, 0), Vector2(20, scene.height)))
-    walls.append(Wall(Vector2(scene.width - 20, 0), Vector2(scene.width, scene.height)))
-
-    # and a wall in the middle to play with
-    walls.append(Wall(Vector2(600, 200), Vector2(800, 400)))
 
     print("[INFO] Fight!")
 
