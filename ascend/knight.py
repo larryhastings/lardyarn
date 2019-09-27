@@ -1,6 +1,6 @@
 import math
 from typing import Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 from wasabi2d import Vector2, animate, clock
@@ -50,6 +50,9 @@ class Hand:
         c = np.cos(a)
 
         self.sprite.pos = k.pos + np.array([c, s]) * self.radius
+
+    def delete(self):
+        self.sprite.delete()
 
 
 @dataclass
@@ -187,108 +190,13 @@ class Knight:
         self.sword.attack = False
 
         self.pos = Vector2(scene.width, scene.height) * 0.5
+        self.last_pos = None
         self.v = Vector2()
         self.accel = Vector2()  # direction of the acceleration
 
         # The distance the knight has travelled; this is used in
         # calculating his gait
         self.step = 0
-
-        self.can_act = Lockout()
-        self.can_move = Lockout()
-
-    def accelerate(self, v):
-        if self.can_move:
-            self.accel += Vector2(v)
-            if self.accel.length_squared() > 1:
-                self.accel.normalize_ip()
-        else:
-            v = Vector2(v)
-            if self.v and v:
-                side = self.v.normalize().rotate(90)
-                self.accel += 0.3 * v * abs(side.dot(v.normalize()))
-
-    def set_inputs(self, inputs):
-        """Pass information from the controller."""
-
-        defend, attack, charge, bomb = inputs
-
-        if not self.can_act:
-            return
-
-        if defend:
-            self.can_act.lock(0.3)
-            animate(self.shield, duration=0.1, angle=-0.2, radius=8)
-            animate(self.sword, duration=0.3, angle=1.3, radius=25)
-        elif bomb:
-            self.can_act.lock(0.1)
-            direction = Vector2(
-                math.cos(self.knight.angle),
-                math.sin(self.knight.angle),
-            )
-            pos = Vector2(*self.knight.pos) + self.radius * direction
-            dir = Vector2()
-            dir.from_polar((Bomb.SPEED, math.degrees(self.knight.angle)))
-            vel = self.v + dir
-            self.world.spawn_bomb(pos, vel)
-        elif charge:
-            self.can_move.lock(1.8)
-            self.can_act.lock(1.8)
-            animate(self.shield, duration=0.1, angle=0, radius=10)
-            animate(self.sword, duration=0.1, angle=0, radius=20)
-            clock.schedule(self._start_charge, 0.3)
-        elif attack:
-            self.can_act.lock(0.5)
-            animate(
-                self.sword,
-                'accel_decel',
-                duration=0.05,
-                angle=2.5,
-                on_finished=self._start_attack
-            )
-        else:
-            self.normal_stance()
-
-    def _start_attack(self):
-        """Initiate the attack."""
-        self.sword.attack = True
-        animate(self.shield, duration=0.08, angle=-1.3)
-        animate(
-            self.sword,
-            duration=0.15,
-            tween='accel_decel',
-            angle=-1.5,
-            radius=30,
-            on_finished=self._end_attack
-        )
-
-    def _end_attack(self):
-        self.sword.attack = False
-        self.normal_stance()
-
-    def _start_charge(self):
-        self.sword.attack = True
-        clock.each_tick(self._charge)
-        self.charge_t = 0
-
-    def _charge(self, dt):
-        self.charge_t += dt
-        angle = self.knight.angle
-        c, s = np.cos(angle), np.sin(angle)
-        self.accel = Vector2(c, s) * 2
-        x, y = self.knight.pos
-        if self.charge_t > 1.5 or \
-                x < self.radius or x > self.scene.width - self.radius or \
-                y < self.radius or y > self.scene.height - self.radius:
-            clock.unschedule(self._charge)
-            self.sword.attack = False
-            self.can_act.unlock()
-            self.can_move.unlock()
-
-    def normal_stance(self):
-        """Return the knight to his rest pose."""
-        animate(self.shield, duration=0.3, angle=-1, radius=12)
-        animate(self.sword, 'accel_decel', duration=0.3, angle=1, radius=25)
 
     # Acceleration of the knight in pixels/s^2
     ACCELERATION = 650
@@ -297,6 +205,14 @@ class Knight:
 
     # Rate of turn, radians / s at full acceleration
     TURN = 10
+
+    @property
+    def angle(self):
+        return self.knight.angle
+
+    @angle.setter
+    def angle(self, v):
+        self.knight.angle = v
 
     def update(self, dt):
         """Update the knight this frame."""
@@ -341,18 +257,30 @@ class Knight:
         self.sword.update()
         self.accel *= 0.0
 
-        if dv > 1e-2:
-            stern = self.pos - self.v.normalize() * 10
-            self.scene.smoke.emit(
-                num=np.random.poisson(self.v.length() * self.SMOKE_RATE * dt),
-                pos=stern,
-                pos_spread=2,
-                vel=self.v * 0.3,
-                spin_spread=1,
-                size=7,
-                angle=self.knight.angle,
-                angle_spread=3,
-            )
+        if self.last_pos:
+            displacement = Vector2(*self.pos - self.last_pos)
+            num = np.random.poisson(displacement.length() * self.SMOKE_RATE)
+            if num:
+                stern = self.pos - displacement.normalize() * 10
+                self.scene.smoke.emit(
+                    num=num,
+                    pos=stern,
+                    pos_spread=2,
+                    vel=self.v * 0.3,
+                    spin_spread=1,
+                    size=7,
+                    angle=self.knight.angle,
+                    angle_spread=3,
+                )
+        self.last_pos = Vector2(*self.pos)
+
+    def throw_bomb(self):
+        angle = self.knight.angle
+        direction = Vector2()
+        direction.from_polar((1, math.degrees(angle)))
+        pos = Vector2(*self.knight.pos) + self.radius * direction
+        vel = self.v + direction * Bomb.SPEED
+        self.world.spawn_bomb(pos, vel)
 
     # Smoke in particles per pixel
     SMOKE_RATE = 0.07
@@ -362,4 +290,106 @@ class Knight:
         self.knight.delete()
         self.shield.delete()
         self.sword.delete()
-        self.rhand.delete()
+
+
+@dataclass
+class KnightController:
+    knight: Knight
+
+    can_act: Lockout = field(default_factory=Lockout)
+    can_move: Lockout = field(default_factory=Lockout)
+
+    @property
+    def sword(self):
+        return self.knight.sword
+
+    @property
+    def shield(self):
+        return self.knight.shield
+
+    def accelerate(self, v):
+        if self.can_move:
+            self.knight.accel += Vector2(v)
+            if self.knight.accel.length_squared() > 1:
+                self.knight.accel.normalize_ip()
+        else:
+            v = Vector2(v)
+            if self.knight.v and v:
+                side = self.knight.v.normalize().rotate(90)
+                self.knight.accel += 0.3 * v * abs(side.dot(v.normalize()))
+
+    def set_inputs(self, inputs):
+        """Pass information from the controller."""
+
+        defend, attack, charge, bomb = inputs
+
+        if not self.can_act:
+            return
+
+        if defend:
+            self.can_act.lock(0.3)
+            animate(self.shield, duration=0.1, angle=-0.2, radius=8)
+            animate(self.sword, duration=0.3, angle=1.3, radius=25)
+        elif bomb:
+            self.can_act.lock(0.5)
+            self.knight.throw_bomb()
+        elif charge:
+            self.can_move.lock(1.8)
+            self.can_act.lock(1.8)
+            animate(self.shield, duration=0.1, angle=0, radius=10)
+            animate(self.sword, duration=0.1, angle=0, radius=20)
+            clock.schedule(self._start_charge, 0.3)
+        elif attack:
+            self.can_act.lock(0.5)
+            animate(
+                self.sword,
+                'accel_decel',
+                duration=0.05,
+                angle=2.5,
+                on_finished=self._start_attack
+            )
+        else:
+            self.normal_stance()
+
+    def _start_attack(self):
+        """Initiate the attack."""
+        self.sword.attack = True
+        animate(self.shield, duration=0.08, angle=-1.3)
+        animate(
+            self.sword,
+            duration=0.15,
+            tween='accel_decel',
+            angle=-1.5,
+            radius=30,
+            on_finished=self._end_attack
+        )
+
+    def _end_attack(self):
+        self.sword.attack = False
+        self.normal_stance()
+
+    def _start_charge(self):
+        self.sword.attack = True
+        clock.each_tick(self._charge)
+        self.charge_t = 0
+
+    def _charge(self, dt):
+        self.charge_t += dt
+        angle = self.knight.angle
+        c, s = np.cos(angle), np.sin(angle)
+        self.knight.accel = Vector2(c, s) * 2
+        x, y = self.knight.pos
+        radius = self.knight.radius
+        scene = self.knight.scene
+        if self.charge_t > 1.5 or \
+                x < radius or x > scene.width - radius or \
+                y < radius or y > scene.height - radius:
+            clock.unschedule(self._charge)
+            self.sword.attack = False
+            self.can_act.unlock()
+            self.can_move.unlock()
+
+    def normal_stance(self):
+        """Return the knight to his rest pose."""
+        animate(self.shield, duration=0.3, angle=-1, radius=12)
+        animate(self.sword, 'accel_decel', duration=0.3, angle=1, radius=25)

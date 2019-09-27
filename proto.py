@@ -15,6 +15,7 @@ from pygame import joystick
 from triangle_intersect import polygon_collision
 from vector2d import Vector2D, Polar2D
 
+from ascend.knight import Knight
 from ascend import game
 
 settings = load_settings()
@@ -30,7 +31,10 @@ def init_sound(devicename):
     try:
         pygame.mixer.init()
     except pygame.error as e:
-        print("[WARN] Couldn't get exclusive access to sound device!  Sound disabled.")
+        print(
+            "[WARN] Couldn't get exclusive access to sound device! "
+            "Sound disabled."
+        )
         print("[WARN]", e)
         # call pre-init again with no devicename
         # this will reset back to the default
@@ -109,11 +113,8 @@ class Player:
 
     def __init__(self):
         self.pos = Vector2D(screen_center)
-        self.shape = scene.layers[Layers.ENTITIES_LAYER].add_circle(
-            radius=self.body_radius,
-            pos=self.pos,
-            color=(0, 1/2, 0),
-            )
+        self.shape = Knight(world)
+        self.shape.knight.pos = self.pos
 
         self.momentum = Vector2D()
 
@@ -139,7 +140,11 @@ class Player:
             theta += step
 
         self.zone_layer = scene.layers[Layers.ZONE_LAYER]
-        self.zone = self.zone_layer.add_polygon(vertices, fill=True, color=self.normal_zone_color)
+        self.zone = self.zone_layer.add_polygon(
+            vertices,
+            fill=True,
+            color=self.normal_zone_color
+        )
         self.zone_center = self.pos + Vector2D(self.zone_center_distance, 0)
         self.zone_layer_active = False
         self.zone_layer.visible = False
@@ -286,7 +291,8 @@ class Player:
         v3 = v1 + v3delta
         self.zone_triangle = [v1, v2, v3]
         # print(f"player pos {self.pos} :: zone angle {self.zone_angle} triangle {self.zone_triangle}")
-
+        self.shape.angle = self.zone_angle
+        self.shape.update(dt)
 
     def on_collision_zone(self, other):
         """
@@ -297,14 +303,12 @@ class Player:
         self.zone.color = self.flashing_zone_color
         sounds.zap.play()
 
-
     def on_collision_body(self, other):
         """
         self and body are within body radius. they're colliding, but how?
         Returns enum indicating type of collision.
         """
         self.on_death(other)
-
 
     def on_death(self, other):
         global pause
@@ -328,9 +332,6 @@ class Player:
 
         self.message.text = "A WINNER IS YOU!\ngame over\npress Space or joystick button to play again\npress Escape to quit"
         sounds.game_won.play()
-
-
-
 
 
 movement_keys = {}
@@ -383,7 +384,7 @@ max_speed = 1000.0
 # tweaked faster values
 acceleration_scale = 1800
 air_resistance = 0.07
-max_speed = 700 # max observed speed is 691 anyway
+max_speed = 700  # max observed speed is 691 anyway
 
 max_shield_delta = math.tau / 6
 
@@ -392,6 +393,7 @@ frame = 0
 
 enemies = []
 walls = []
+
 
 @event
 def update(dt, keyboard):
@@ -799,6 +801,7 @@ scene = Scene(
     rootdir=Path(ascend.__file__).parent
 )
 game.setup_scene(scene)
+world = game.create_world(scene)
 
 
 pause = False
@@ -849,7 +852,6 @@ def new_game():
     print("[INFO] Fight!")
 
 
-
 def close_game():
     global player
     player.close()
@@ -871,8 +873,5 @@ def close_game():
         scene.layers[value].clear
 
 
-
-
 new_game()
-
 run()  # keep this at the end of the file

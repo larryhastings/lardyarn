@@ -2,6 +2,7 @@ from wasabi2d import Scene, event, run, clock
 import pygame
 from pygame import joystick
 
+from .knight import KnightController
 from .control import JoyController, KeyboardController
 from .world import World
 
@@ -73,7 +74,7 @@ controllers = []
 
 
 def create_players(world):
-    player1 = world.spawn_pc()
+    player1 = KnightController(world.spawn_pc())
 
     if joystick.get_count() > 0:
         controllers.append(
@@ -86,9 +87,9 @@ def create_players(world):
 
     if joystick.get_count() > 1:
         print("2-player game")
-        player1.pos.x *= 0.5
-        player2 = world.spawn_pc(color=(0.4, 0.9, 1.1, 1))
-        player2.pos.x += player1.pos.x
+        player1.knight.pos.x *= 0.5
+        player2 = KnightController(world.spawn_pc(color=(0.4, 0.9, 1.1, 1)))
+        player2.knight.pos.x += player1.pos.x
         controllers.append(
             JoyController(player2, joystick.Joystick(1))
         )
