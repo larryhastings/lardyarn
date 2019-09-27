@@ -11,72 +11,68 @@ __all__ = [
     'create_players',
 ]
 
-scene = Scene(
-    title="Ascent - PyWeek 28",
-    width=1024,
-    height=768
-)
-scene.background = (0.2, 0.2, 0.2)
-scene.layers[0].set_effect(
-    'dropshadow',
-    radius=2,
-    offset=(1.5, 1.5)
-)
-scene.layers[0].set_effect(
-    'dropshadow',
-    radius=3,
-    offset=(3, 3)
-)
-scene.layers[1].set_effect(
-    'bloom',
-    radius=10,
-)
 
-smoke = scene.layers[0].add_particle_group(
-    texture='smoke',
-    grow=0.1,
-    max_age=0.8,
-    drag=0.1,
-)
-smoke.add_color_stop(0, '#888888ff')
-smoke.add_color_stop(0.6, '#888888ff')
-smoke.add_color_stop(0.8, '#88888800')
-scene.smoke = smoke
+def setup_scene(scene):
+    scene.background = (0.2, 0.2, 0.2)
+    scene.layers[0].set_effect(
+        'dropshadow',
+        radius=2,
+        offset=(1.5, 1.5)
+    )
+    scene.layers[0].set_effect(
+        'dropshadow',
+        radius=3,
+        offset=(3, 3)
+    )
+    scene.layers[1].set_effect(
+        'bloom',
+        radius=10,
+    )
 
-sparks = scene.layers[1].add_particle_group(
-    texture='spark',
-    grow=0.1,
-    max_age=0.6,
-    drag=0.7,
-)
-sparks.add_color_stop(0, (2, 2, 0.8, 1))
-sparks.add_color_stop(0.3, (2, 1, 0, 1))
-sparks.add_color_stop(0.6, (0, 0, 0, 0))
-scene.sparks = sparks
+    smoke = scene.layers[0].add_particle_group(
+        texture='smoke',
+        grow=0.1,
+        max_age=0.8,
+        drag=0.1,
+    )
+    smoke.add_color_stop(0, '#888888ff')
+    smoke.add_color_stop(0.6, '#888888ff')
+    smoke.add_color_stop(0.8, '#88888800')
+    scene.smoke = smoke
 
-scene.bones = scene.layers[-1].add_particle_group(
-    texture='bone',
-    max_age=4,
-    drag=0.1,
-    spin_drag=0.4,
-)
-scene.skulls = scene.layers[-1].add_particle_group(
-    texture='skull',
-    max_age=4,
-    drag=0.1,
-    spin_drag=0.4,
-)
-for pgroup in (scene.bones, scene.skulls):
-    pgroup.add_color_stop(0, '#bbbbbbff')
-    pgroup.add_color_stop(1, '#bbbbbbff')
-    pgroup.add_color_stop(4, '#bbbbbb00')
+    sparks = scene.layers[1].add_particle_group(
+        texture='spark',
+        grow=0.1,
+        max_age=0.6,
+        drag=0.7,
+    )
+    sparks.add_color_stop(0, (2, 2, 0.8, 1))
+    sparks.add_color_stop(0.3, (2, 1, 0, 1))
+    sparks.add_color_stop(0.6, (0, 0, 0, 0))
+    scene.sparks = sparks
+
+    scene.bones = scene.layers[-1].add_particle_group(
+        texture='bone',
+        max_age=4,
+        drag=0.1,
+        spin_drag=0.4,
+    )
+    scene.skulls = scene.layers[-1].add_particle_group(
+        texture='skull',
+        max_age=4,
+        drag=0.1,
+        spin_drag=0.4,
+    )
+    for pgroup in (scene.bones, scene.skulls):
+        pgroup.add_color_stop(0, '#bbbbbbff')
+        pgroup.add_color_stop(1, '#bbbbbbff')
+        pgroup.add_color_stop(4, '#bbbbbb00')
 
 
-world = World(scene)
 controllers = []
 
 
-def create_players():
+def create_players(world):
     player1 = world.spawn_pc()
 
     if joystick.get_count() > 0:
@@ -107,16 +103,8 @@ def update_input(dt):
         controller.update()
 
 
-clock.each_tick(world.update)
+def create_world(scene):
+    world = World(scene)
+    clock.each_tick(world.update)
+    return world
 
-
-SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
-
-
-@event
-def on_key_down(key, mod):
-    if key == key.F12:
-        if mod & SHIFT:
-            scene.toggle_recording()
-        else:
-            scene.screenshot()
