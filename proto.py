@@ -21,12 +21,6 @@ rcfile_schema = {
     'hat': 0,
     'move x axis': 0,
     'move y axis': 1,
-    'aim x axis': 3,
-    'aim y axis': 4,
-    'button up': 3,
-    'button down': 0,
-    'button left': 2,
-    'button right': 1,
 }
 
 settings = {}
@@ -273,7 +267,6 @@ class Player:
             return
 
         penetration_vector = detect_wall_collisions(self)
-
         if penetration_vector:
             # we hit one or more walls!
 
@@ -295,10 +288,15 @@ class Player:
             # print(f"[{frame:6} {time:8}] new self.pos {self.pos} momentum {self.momentum}")
             # print()
 
-
         self.zone.pos = self.shape.pos = self.pos
 
         current_speed = self.momentum.magnitude
+        # global max_speed_measured
+        # new_max = max(max_speed_measured, current_speed)
+        # if new_max > max_speed_measured:
+        #     max_speed_measured = new_max
+        #     print("new max speed measured:", max_speed_measured)
+
         zone_currently_active = current_speed >= self.zone_activation_speed
         if zone_currently_active:
             if not self.zone_layer_active:
@@ -316,41 +314,6 @@ class Player:
                     # print("STATE 3: ZONE TIMED OUT")
                     self.zone_grace_timeout = 0
                     self.zone_layer.visible = self.zone_layer_active = False
-
-        global max_speed_measured
-        new_max = max(max_speed_measured, current_speed)
-        if new_max > max_speed_measured:
-            max_speed_measured = new_max
-            print("new max speed measured:", max_speed_measured)
-
-        def update_shield(source, vector):
-            dist, degrees = vector.as_polar()
-            angle = math.radians(degrees)
-
-            delta = abs(self.zone_angle - angle)
-            # krazy kode to avoid the "sword goes crazy when you flip from 179° to 181°" problem
-            # aka the "+math.pi to -math.pi" problem
-            if delta > math.pi:
-                if angle < self.zone_angle:
-                    angle += math.tau
-                else:
-                    angle -= math.tau
-                delta = abs(self.zone_angle - angle)
-                assert delta <= math.pi
-
-            if delta <= max_shield_delta:
-                self.zone_angle = angle
-            elif angle < self.zone_angle:
-                self.zone_angle -= max_shield_delta
-            else:
-                self.zone_angle += max_shield_delta
-
-            self.zone_angle = normalize_angle(self.zone_angle)
-            assert -math.pi <= self.zone.angle <= math.pi
-
-            # update the shape
-            # self.shield.angle = self.zone_angle
-            self.zone.angle = self.zone_angle
 
         self.zone_center = self.pos + Polar2D(self.zone_center_distance, self.zone_angle)
 
@@ -410,24 +373,11 @@ class Player:
 
 
 
-movement_keys = {
-    keys.UP:    Vector2D(+0, -1),
-    keys.DOWN:  Vector2D(+0, +1),
-    keys.LEFT:  Vector2D(-1, +0),
-    keys.RIGHT: Vector2D(+1, +0),
-}
-movement_keys[keys.W] = movement_keys[keys.UP]
-movement_keys[keys.S] = movement_keys[keys.DOWN]
-movement_keys[keys.A] = movement_keys[keys.LEFT]
-movement_keys[keys.D] = movement_keys[keys.RIGHT]
-
-
-shield_keys = {
-    keys.I: Vector2D(+0, -1),
-    keys.K: Vector2D(+0, +1),
-    keys.J: Vector2D(-1, +0),
-    keys.L: Vector2D(+1, +0),
-}
+movement_keys = {}
+movement_keys[keys.W] = movement_keys[keys.UP]    = Vector2D(+0, -1)
+movement_keys[keys.S] = movement_keys[keys.DOWN]  = Vector2D(+0, +1)
+movement_keys[keys.A] = movement_keys[keys.LEFT]  = Vector2D(-1, +0)
+movement_keys[keys.D] = movement_keys[keys.RIGHT] = Vector2D(+1, +0)
 
 
 joystick.init()
@@ -442,18 +392,10 @@ if which_joystick < joystick.get_count():
         (max(settings['move x axis'], settings['move y axis']) < axes)
         and
         (min(settings['move x axis'], settings['move y axis']) >= 0))
-    use_right_stick = (
-        (max(settings['aim x axis'], settings['aim y axis']) < axes)
-        and
-        (min(settings['aim x axis'], settings['aim y axis']) >= 0))
 
     buttons = stick.get_numbuttons()
     noun = "button" if buttons == 1 else "buttons"
     print(f"[INFO] {buttons} joystick {noun}")
-    use_face_buttons = (
-        (max(settings['button up'], settings['button down'], settings['button left'], settings['button right']) < buttons)
-        and
-        (min(settings['button up'], settings['button down'], settings['button left'], settings['button right']) >= 0))
 
     hats = stick.get_numhats()
     noun = "hat" if hats == 1 else "hats"
@@ -467,19 +409,10 @@ else:
     print(f"[WARN] Insufficient joysticks!")
     print(f"[WARN] We want joystick #{which_joystick}, but only {joystick.get_count()} joysticks detected.")
     use_left_stick = use_right_stick = use_face_buttons = use_hat = False
+    stick = None
 
 print("[INFO] use left stick?", use_left_stick)
-print("[INFO] use right stick?", use_right_stick)
 print("[INFO] use hat?", use_hat)
-print("[INFO] use face buttons for shield?", use_face_buttons)
-
-
-shield_buttons = {
-    settings['button up'   ]: Vector2D(+0, -1),
-    settings['button down' ]: Vector2D(+0, +1),
-    settings['button left' ]: Vector2D(-1, +0),
-    settings['button right']: Vector2D(+1, +0),
-}
 
 
 # dan's original values
@@ -509,10 +442,11 @@ def update(dt, keyboard):
         sys.exit("[INFO] Quittin' time!")
 
     if pause:
-        for button in (0, 1, 2, 3):
-            if stick.get_button(button):
-                close_game()
-                new_game()
+        if stick:
+            for button in (0, 1, 2, 3):
+                if stick.get_button(button):
+                    close_game()
+                    new_game()
         return
 
     time += dt
@@ -956,6 +890,15 @@ def close_game():
     for wall in walls:
         wall._close()
     walls.clear()
+
+    # clear out all layers
+    for layer in dir(Layers):
+        if layer.startswith("_"):
+            continue
+        value = getattr(Layers, layer)
+        scene.layers[value].clear
+
+
 
 
 new_game()
