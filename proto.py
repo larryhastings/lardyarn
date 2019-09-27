@@ -16,6 +16,7 @@ from triangle_intersect import polygon_collision
 from vector2d import Vector2D, Polar2D
 
 from ascend.knight import Knight
+from ascend.mobs import MagicMissile, Skeleton
 from ascend import game
 
 settings = load_settings()
@@ -658,12 +659,13 @@ class Stalker(BadGuy):
             self.speed = 0.8
             color = (0.8, 0.3, 0.3)
 
-        self.shape = scene.layers[Layers.ENTITIES_LAYER].add_star(
-            outer_radius=self.radius,
-            inner_radius=4,
-            points = 6,
-            color=color,
-            )
+        self.shape = Skeleton(world, Vector2D(0, 0))
+#        scene.layers[Layers.ENTITIES_LAYER].add_star(
+#            outer_radius=self.radius,
+#            inner_radius=4,
+#            points = 6,
+#            color=color,
+#            )
         self.random_placement()
         self.spot_high_watermark = 140
         self.spot_low_watermark = 90
@@ -694,6 +696,10 @@ class Stalker(BadGuy):
         else:
             self.move_towards_player()
 
+    def _close(self):
+        self.shape.die(Vector2D())
+
+
 class Shot(BadGuy):
     radius = 2
     speed = 4
@@ -705,12 +711,8 @@ class Shot(BadGuy):
         self.shooter = shooter
         self.pos = Vector2D(shooter.shape.pos[0], shooter.shape.pos[1])
         self.delta = (player.pos - self.pos).scaled(self.speed)
-        self.layer = scene.layers[Layers.BULLETS_LAYER]
-        self.shape = self.layer.add_circle(
-            radius=self.radius,
-            pos=self.pos,
-            color=(1, 1, 3/4),
-        )
+        self.shape = MagicMissile(world, self.pos, self.delta)
+        world.objects.append(self.shape)
         self.expiration_date = time + self.lifetime
         sounds.enemy_shot.play()
 
@@ -724,6 +726,9 @@ class Shot(BadGuy):
 
     def on_collide_shield(self):
         self.remove()
+
+    def _close(self):
+        self.shape.hit()
 
 
 
