@@ -5,8 +5,8 @@ from wasabi2d.keyboard import keyboard
 import pygame
 from pygame import joystick
 
-from knight import Knight
-from world import World
+from .knight import Knight
+from .world import World
 
 
 scene = Scene(
@@ -169,4 +169,3 @@ def on_key_down(key, mod):
             scene.screenshot()
 
 
-run()
