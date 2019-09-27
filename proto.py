@@ -99,16 +99,14 @@ class Layers(enum.IntEnum):
     TEXT_LAYER = 4
 
 
-TAU = 2 * math.pi
-
 
 def angle_diff(a, b):
     """Subtract angle b from angle a.
 
     Return the difference in the smallest direction.
     """
-    diff = (a - b) % TAU
-    return min(diff, diff - TAU, key=abs)
+    diff = (a - b) % math.tau
+    return min(diff, diff - math.tau, key=abs)
 
 
 def normalize_angle(theta):
@@ -371,8 +369,6 @@ class Player:
 
 
 
-
-
 movement_keys = {}
 movement_keys[keys.W] = movement_keys[keys.UP]    = Vector2D(+0, -1)
 movement_keys[keys.S] = movement_keys[keys.DOWN]  = Vector2D(+0, +1)
@@ -415,17 +411,12 @@ print("[INFO] use left stick?", use_left_stick)
 print("[INFO] use hat?", use_hat)
 
 
-# dan's original values
-acceleration_scale = 1000
-air_resistance = 0.01
-max_speed = 1000.0
 
 # tweaked faster values
 acceleration_scale = 1800
 air_resistance = 0.07
 max_speed = 700 # max observed speed is 691 anyway
 
-max_shield_delta = math.tau / 6
 
 time = 0
 frame = 0
