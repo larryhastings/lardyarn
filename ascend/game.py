@@ -1,13 +1,15 @@
-from dataclasses import dataclass
-
-from wasabi2d import Scene, event, run, keys
-from wasabi2d.keyboard import keyboard
+from wasabi2d import Scene, event, run, clock
 import pygame
 from pygame import joystick
 
-from .knight import Knight
+from .control import JoyController, KeyboardController
 from .world import World
 
+
+__all__ = [
+    'run',
+    'create_players',
+]
 
 scene = Scene(
     title="Ascent - PyWeek 28",
@@ -70,91 +72,42 @@ for pgroup in (scene.bones, scene.skulls):
     pgroup.add_color_stop(4, '#bbbbbb00')
 
 
-joystick.init()
-
-
-@dataclass
-class JoyController:
-    pc: Knight
-    stick: joystick.Joystick
-
-    # buttons to map into what inputs
-    BUTTON_MAP = [5, 1, 0, 2]
-
-    def __post_init__(self):
-        self.stick.init()
-        self.buttons = range(self.stick.get_numbuttons())
-
-    def update(self):
-        self.pc.accelerate((
-            self.stick.get_axis(0),
-            self.stick.get_axis(1),
-        ))
-        inputs = tuple(self.stick.get_button(k) for k in self.BUTTON_MAP)
-        self.pc.set_inputs(inputs)
-
-
-@dataclass
-class KeyboardController:
-    pc: Knight
-
-    KEY_MAP = [keys.Z, keys.X, keys.C, keys.V]
-
-    def update(self):
-        ax = ay = 0
-        if keyboard.left:
-            ax = -1
-        elif keyboard.right:
-            ax = 1
-
-        if keyboard.up:
-            ay = -1
-        elif keyboard.down:
-            ay = 1
-
-        self.pc.accelerate((ax, ay))
-        inputs = tuple(keyboard[k] for k in self.KEY_MAP)
-        self.pc.set_inputs(inputs)
-
-
-assert len(KeyboardController.KEY_MAP) == len(JoyController.BUTTON_MAP), \
-        "Mismatch on number of inputs for controller types."
-
-
 world = World(scene)
-
-player1 = world.spawn_pc()
 controllers = []
 
-if joystick.get_count() > 0:
-    controllers.append(
-        JoyController(player1, joystick.Joystick(0))
-    )
-else:
-    controllers.append(
-        KeyboardController(player1)
-    )
 
-if joystick.get_count() > 1:
-    print("2-player game")
-    player1.pos.x *= 0.5
-    player2 = world.spawn_pc(color=(0.4, 0.9, 1.1, 1))
-    player2.pos.x += player1.pos.x
-    controllers.append(
-        JoyController(player2, joystick.Joystick(1))
-    )
-else:
-    print("1-player game")
+def create_players():
+    player1 = world.spawn_pc()
 
-world.spawn_mobs(num=20)
+    if joystick.get_count() > 0:
+        controllers.append(
+            JoyController(player1, joystick.Joystick(0))
+        )
+    else:
+        controllers.append(
+            KeyboardController(player1)
+        )
+
+    if joystick.get_count() > 1:
+        print("2-player game")
+        player1.pos.x *= 0.5
+        player2 = world.spawn_pc(color=(0.4, 0.9, 1.1, 1))
+        player2.pos.x += player1.pos.x
+        controllers.append(
+            JoyController(player2, joystick.Joystick(1))
+        )
+    else:
+        print("1-player game")
+
+    clock.each_tick(update_input)
 
 
-@event
-def update(dt, keyboard):
+def update_input(dt):
     for controller in controllers:
         controller.update()
 
-    world.update(dt)
+
+clock.each_tick(world.update)
 
 
 SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
@@ -167,5 +120,3 @@ def on_key_down(key, mod):
             scene.toggle_recording()
         else:
             scene.screenshot()
-
-

@@ -1,1 +1,7 @@
 __pycache__/
+*.pyc
+*.swp
+video_*.mp4
+screenshot_*.png
+Screenshot*.png
+venv
