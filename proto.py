@@ -82,10 +82,11 @@ except pygame.error as e:
 print("[INFO] Finishing imports...")
 
 import wasabi2d
-from wasabi2d import Scene, run, event, clock, Vector2, keys, sounds
+from wasabi2d import Scene, run, event, clock, keys, sounds
 import pygame.mouse
 from pygame import joystick
 from triangle_intersect import polygon_collision
+from vector2d import Vector2D, Polar2D
 
 
 print("[INFO] Initializing runtime...")
@@ -153,54 +154,39 @@ class Player:
     message = None
 
     def __init__(self):
-        self.pos = Vector2(screen_center)
+        self.pos = Vector2D(screen_center)
         self.shape = scene.layers[Layers.ENTITIES_LAYER].add_circle(
             radius=self.body_radius,
             pos=self.pos,
             color=(0, 1/2, 0),
             )
 
-        self.movement = Vector2()
+        self.movement = Vector2D()
 
         # new "zone of destruction"
         self.normal_zone_color = (0.3, 0.3, 0.8)
         self.flashing_zone_color = (0.9, 0.9, 1)
         if 1:
             # draw zone as arc
-            vertices = [Vector2(self.body_radius, 0)]
+            vertices = [Vector2D(self.body_radius, 0)]
             points_on_zone = 12
             # lame, range only handles ints. duh!
-            start = math.degrees(-self.zone_arc / 2)
-            stop = math.degrees(self.zone_arc / 2)
+            start = -self.zone_arc / 2
+            stop = self.zone_arc / 2
             step = (stop - start) / points_on_zone
             theta = start
 
             def append(theta):
-                # even lamer: from_polar()
-                # MUST BE CALLED ON AN INSTANCE
-                # TAKES AN ARGUMENT, WHICH MUST BE A Vector2
-                # IGNORES ITS OWN x AND y, OVERWRITING THEM
-                # WTF
-                v = Vector2(self.zone_radius, theta)
-                v.from_polar(v)
-                v.x += self.body_radius
+                v = Vector2D(Polar2D(self.zone_radius, theta))
+                v += Vector2D(self.body_radius, 0)
                 vertices.append(tuple(v))
             while theta < stop:
                 append(theta)
                 theta += step
-        else:
-            # draw zone as circl3e, for quick prototyping
-            # draw zone as arc
-            vertices = []
-            for theta in range(0, 360, 10):
-                v = Vector2(self.zone_radius / 2, theta)
-                v.from_polar(v)
-                v.x += self.zone_center_distance
-                vertices.append(tuple(v))
 
         self.zone_layer = scene.layers[Layers.ZONE_LAYER]
         self.zone = self.zone_layer.add_polygon(vertices, fill=True, color=self.normal_zone_color)
-        self.zone_center = self.pos + Vector2(self.zone_center_distance, 0)
+        self.zone_center = self.pos + Vector2D(self.zone_center_distance, 0)
         self.zone_layer_active = False
         self.zone_layer.visible = False
 
@@ -212,61 +198,12 @@ class Player:
             )
         self.message.text = ""
 
-        if 0:
-            # old sword & shield
-
-            # self.shield = scene.layers[Layers.ZONE_LAYER].add_sprite(
-            #     'swordandshield',
-            #     pos=(scene.width / 2, scene.height / 2),
-            #     )
-            inner = []
-            outer = []
-            # radius_delta = 2
-            inner_radius = self.body_radius - 3
-            outer_radius = self.body_radius + 1
-            # lame, range only handles ints. duh!
-            start = math.degrees(-self.shield_arc / 2)
-            stop = math.degrees(self.shield_arc / 2)
-            step = (stop - start) / 12
-            theta = start
-            def append(theta):
-                # even lamer: from_polar()
-                # MUST BE CALLED ON AN INSTANCE
-                # TAKES AN ARGUMENT, WHICH MUST BE A Vector2
-                # IGNORES ITS OWN x AND y, OVERWRITING THEM
-                # WTF
-                v = Vector2(inner_radius, theta)
-                v.from_polar(v)
-                inner.append(tuple(v))
-
-                v = Vector2(outer_radius, theta)
-                v.from_polar(v)
-                outer.append(tuple(v))
-
-            while theta < stop:
-                append(theta)
-                theta += step
-            append(stop)
-
-            # now make the sword pointy!
-            middle = len(outer) // 2
-            v = Vector2(outer[middle])
-            radius, theta = v.as_polar()
-            v.from_polar((self.sword_radius, theta))
-            outer[middle] = tuple(v)
-
-            inner.reverse()
-            outer.extend(inner)
-            vertices = outer
-            self.shield = scene.layers[Layers.ZONE_LAYER].add_polygon(vertices, fill=True, color=(1, 1, 1))
-
     def close(self):
         self.shape.delete()
         self.zone.delete()
         if self.message:
             # del self.message
             # self.message.delete()
-            # self.message.pos = Vector2(-10000, -10000)
             self.message.text = ""
 
     def compute_collision_with_bad_guy(self, bad_guy):
@@ -274,7 +211,7 @@ class Player:
             return CollisionType.NO_COLLISION
 
         distance_vector     = self.pos - bad_guy.pos
-        distance_squared = distance_vector.magnitude_squared()
+        distance_squared = distance_vector.magnitude_squared
         intersect_outer_radius = distance_squared <= bad_guy.outer_collision_distance_squared
         if not intersect_outer_radius:
             return CollisionType.NO_COLLISION
@@ -283,14 +220,6 @@ class Player:
         if self.zone_layer.visible:
             if polygon_collision(self.zone_triangle, bad_guy):
                 return CollisionType.COLLISION_WITH_ZONE
-            # # print(f"    player center {player.pos} zone angle {player.zone_angle} zone center {player.zone_center}")
-            # vector_to_zone = player.zone_center - self.pos
-            # intersect_zone_radius = vector_to_zone.magnitude_squared() < self.zone_collision_distance_squared
-            # # print(f"    interecting zone? {intersect_zone_radius}")
-            # if intersect_zone_radius:
-            #     collision = player.on_collision_zone(self)
-            #     if collision == CollisionType.COLLISION_WITH_ZONE:
-            #         self.on_collide_zone()
 
         intersect_body_radius = distance_squared <= bad_guy.body_collision_distance_squared
         # print(f"    interecting body? {intersect_body_radius}")
@@ -303,7 +232,7 @@ class Player:
             self.zone_flash_until = 0
             self.zone.color = self.normal_zone_color
 
-        acceleration = Vector2()
+        acceleration = Vector2D()
         for key, vector in movement_keys.items():
             if keyboard[key]:
                 acceleration += vector
@@ -311,26 +240,25 @@ class Player:
         if use_hat:
             x, y = stick.get_hat(0)
             if x or y:
-                acceleration += Vector2(x, -y)
+                acceleration += Vector2D(x, -y)
 
         if use_left_stick:
-            acceleration += Vector2(
+            acceleration += Vector2D(
                 stick.get_axis(0),
                 stick.get_axis(1)
             )
 
-        if acceleration.magnitude() > 1.0:
-            acceleration.normalize_ip()
+        if acceleration.magnitude > 1.0:
+            acceleration = acceleration.normalized()
 
         self.movement = self.movement * air_resistance ** dt + acceleration_scale * acceleration * dt
-        if self.movement.magnitude() > max_speed:
-            self.movement.scale_to_length(max_speed)
+        if self.movement.magnitude > max_speed:
+            self.movement = self.movement.scaled(max_speed)
 
         # Rotate to face the direction of acceleration
         TURN = 12  # radians / s at full acceleration
 
-        da, accel_angle = acceleration.as_polar()
-        accel_angle = math.radians(accel_angle)
+        da, accel_angle = Polar2D(acceleration)
         delta = angle_diff(accel_angle, self.zone_angle)
         if delta < 0:
             self.zone_angle += max(dt * da * -TURN, delta)
@@ -338,7 +266,7 @@ class Player:
             self.zone_angle += min(dt * da * TURN, delta)
         self.zone.angle = self.zone_angle = normalize_angle(self.zone_angle)
 
-        starting_pos = Vector2(self.pos)
+        starting_pos = self.pos
         movement_this_frame = self.movement * dt
         self.pos += movement_this_frame
         if self.pos == starting_pos:
@@ -358,7 +286,7 @@ class Player:
             for i in range(10):
                 factor /= 2
                 try_factor = cumulative_factor + factor
-                partial_movement = Vector2(movement_this_frame) * try_factor
+                partial_movement = movement_this_frame * try_factor
 
                 self.pos = starting_pos + partial_movement
                 hit = False
@@ -384,7 +312,7 @@ class Player:
                 # test zeroing out each component of movement_this_frame
                 # if the resulting movement vector doesn't result in hitting the wall,
                 # leave it in, otherwise zero it out.
-                test_vector = Vector2(movement_this_frame)
+                test_vector = movement_this_frame
                 test_vector.x = 0
                 self.pos = starting_pos + test_vector
                 hit = False
@@ -395,7 +323,7 @@ class Player:
                 if hit:
                     self.movement.x = 0
 
-                test_vector = Vector2(movement_this_frame)
+                test_vector = movement_this_frame
                 test_vector.y = 0
                 self.pos = starting_pos + test_vector
                 hit = False
@@ -407,11 +335,11 @@ class Player:
                     self.movement.y = 0
                 # print(f"hit walls {hit_walls} movement {self.movement}")
 
-            self.movement = Vector2()
+            self.movement = Vector2D()
 
         self.zone.pos = self.shape.pos = self.pos
 
-        current_speed = self.movement.magnitude()
+        current_speed = self.movement.magnitude
         zone_currently_active = current_speed >= self.zone_activation_speed
         if zone_currently_active:
             if not self.zone_layer_active:
@@ -465,52 +393,17 @@ class Player:
             # self.shield.angle = self.zone_angle
             self.zone.angle = self.zone_angle
 
-        self.zone_center = self.pos + Vector2(math.cos(self.zone_angle) * self.zone_center_distance, math.sin(self.zone_angle) * self.zone_center_distance)
+        self.zone_center = self.pos + Polar2D(self.zone_center_distance, self.zone_angle)
 
         # cache zone triangle for collision detection purposes
-        v1 = Vector2(self.body_radius, math.degrees(self.zone_angle))
-        v1.from_polar(v1)
+        v1 = Vector2D(Polar2D(self.body_radius, self.zone_angle))
         v1 += self.pos
-        v2delta = Vector2(self.zone_radius, math.degrees(self.zone_angle - self.zone_arc / 2))
-        v2delta.from_polar(v2delta)
+        v2delta = Vector2D(Polar2D(self.zone_radius, self.zone_angle - self.zone_arc / 2))
         v2 = v1 + v2delta
-        v3delta = Vector2(self.zone_radius, math.degrees(self.zone_angle + self.zone_arc / 2))
-        v3delta.from_polar(v3delta)
+        v3delta = Vector2D(Polar2D(self.zone_radius, self.zone_angle + self.zone_arc / 2))
         v3 = v1 + v3delta
         self.zone_triangle = [v1, v2, v3]
         # print(f"player pos {self.pos} :: zone angle {self.zone_angle} triangle {self.zone_triangle}")
-
-#        mouse_movement = pygame.mouse.get_rel()
-#        if mouse_movement[0] or mouse_movement[1]:
-#            update_shield("mouse", Vector2(mouse_movement))
-
-#        direction = Vector2()
-#        for key, vector in shield_keys.items():
-#            if keyboard[key]:
-#                direction += vector
-#        if direction:
-#            update_shield("keyboard", direction)
-
-        # if use_right_stick:
-        #     stick_rx = stick.get_axis(3)
-        #     stick_ry = stick.get_axis(4)
-        #     # print(stick.get_axis(2), stick.get_axis(3), stick.get_axis(4), stick.get_axis(5))
-        #     if stick_rx or stick_ry:
-        #         update_shield("right stick", Vector2(stick_rx, stick_ry))
-
-        # pressed = set()
-        # for i in range(buttons):
-        #     if stick.get_button(i):
-        #         pressed.add(i)
-        # if pressed:
-        #     print(pressed)
-#        if use_face_buttons:
-#            direction = Vector2()
-#            for button, vector in shield_buttons.items():
-#                if stick.get_button(button):
-#                    direction += vector
-#            if direction:
-#                update_shield("buttons", direction)
 
 
     def on_collision_zone(self, other):
@@ -559,10 +452,10 @@ class Player:
 
 
 movement_keys = {
-    keys.UP:    Vector2(+0, -1),
-    keys.DOWN:  Vector2(+0, +1),
-    keys.LEFT:  Vector2(-1, +0),
-    keys.RIGHT: Vector2(+1, +0),
+    keys.UP:    Vector2D(+0, -1),
+    keys.DOWN:  Vector2D(+0, +1),
+    keys.LEFT:  Vector2D(-1, +0),
+    keys.RIGHT: Vector2D(+1, +0),
 }
 movement_keys[keys.W] = movement_keys[keys.UP]
 movement_keys[keys.S] = movement_keys[keys.DOWN]
@@ -571,10 +464,10 @@ movement_keys[keys.D] = movement_keys[keys.RIGHT]
 
 
 shield_keys = {
-    keys.I: Vector2(+0, -1),
-    keys.K: Vector2(+0, +1),
-    keys.J: Vector2(-1, +0),
-    keys.L: Vector2(+1, +0),
+    keys.I: Vector2D(+0, -1),
+    keys.K: Vector2D(+0, +1),
+    keys.J: Vector2D(-1, +0),
+    keys.L: Vector2D(+1, +0),
 }
 
 
@@ -623,10 +516,10 @@ print("[INFO] use face buttons for shield?", use_face_buttons)
 
 
 shield_buttons = {
-    settings['button up'   ]: Vector2(+0, -1),
-    settings['button down' ]: Vector2(+0, +1),
-    settings['button left' ]: Vector2(-1, +0),
-    settings['button right']: Vector2(+1, +0),
+    settings['button up'   ]: Vector2D(+0, -1),
+    settings['button down' ]: Vector2D(+0, +1),
+    settings['button left' ]: Vector2D(-1, +0),
+    settings['button right']: Vector2D(+1, +0),
 }
 
 
@@ -685,26 +578,26 @@ def repr_float(f):
 
 
 def circle_rect_collision(
-    circle_pos: Vector2,
+    circle_pos: Vector2D,
     circle_radius_squared: float,
 
-    upper_left: Vector2,
-    lower_right: Vector2):
+    upper_left: Vector2D,
+    lower_right: Vector2D):
 
-    test = Vector2(circle_pos)
+    x, y = circle_pos
 
-    if test.x < upper_left.x:
-        test.x = upper_left.x
-    elif test.x > lower_right.x:
-        test.x = lower_right.x
+    if x < upper_left.x:
+        x = upper_left.x
+    elif x > lower_right.x:
+        x = lower_right.x
 
-    if test.y < upper_left.y:
-        test.y = upper_left.y
-    elif test.y > lower_right.y:
-        test.y = lower_right.y
+    if y < upper_left.y:
+        y = upper_left.y
+    elif y > lower_right.y:
+        y = lower_right.y
 
-    delta = circle_pos - test
-    return delta.magnitude_squared() <= circle_radius_squared
+    delta = circle_pos - Vector2D(x, y)
+    return delta.magnitude_squared <= circle_radius_squared
 
 
 class Wall:
@@ -720,9 +613,7 @@ class Wall:
         self.lower_right = lower_right
         self.width = lower_right.x - upper_left.x
         self.height = lower_right.y - upper_left.y
-        self.pos = Vector2(upper_left)
-        self.pos.x += self.width / 2
-        self.pos.y += self.height / 2
+        self.pos = Vector2D(upper_left.x + (self.width / 2), upper_left.y + (self.height / 2))
         # print(f"WALL ul {upper_left} lr {lower_right} pos {self.pos} wxh {self.width} {self.height}")
 
         if visible:
@@ -765,7 +656,7 @@ class BadGuy:
 
     def __init__(self):
         global bad_guy_id
-        self.pos = Vector2()
+        self.pos = Vector2D()
         self.id = bad_guy_id
         bad_guy_id += 1
         self.radius_squared = self.radius ** 2
@@ -792,14 +683,13 @@ class BadGuy:
     def random_placement(self):
         while True:
             offset = self.random_placement_inset
-            self.pos = Vector2(
+            self.pos = Vector2D(
                 random.randint(offset, scene.width - offset),
                 random.randint(offset, scene.height - offset))
 
             # don't go near the player
             delta = player.pos - self.pos
-            distance_squared = delta.magnitude_squared()
-            if distance_squared < self.min_random_distance_squared:
+            if delta.magnitude_squared < self.min_random_distance_squared:
                 continue
 
             # don't intersect with any walls
@@ -829,7 +719,7 @@ class BadGuy:
 
         if 0:
             vector_to_player = player.pos - self.pos
-            distance_squared = vector_to_player.magnitude_squared()
+            distance_squared = vector_to_player.magnitude_squared
             intersect_outer_radius = distance_squared <= self.outer_collision_distance_squared
             if intersect_outer_radius:
                 # print(f"{self} interecting outer radius")
@@ -840,7 +730,7 @@ class BadGuy:
                 else:
                     # print(f"    player center {player.pos} zone angle {player.zone_angle} zone center {player.zone_center}")
                     vector_to_zone = player.zone_center - self.pos
-                    intersect_zone_radius = vector_to_zone.magnitude_squared() < self.zone_collision_distance_squared
+                    intersect_zone_radius = vector_to_zone.magnitude_squared < self.zone_collision_distance_squared
                     # print(f"    interecting zone? {intersect_zone_radius}")
                     if intersect_zone_radius:
                         collision = player.on_collision_zone(self)
@@ -869,14 +759,13 @@ class BadGuy:
 
     def move_towards_player(self):
         delta = player.pos - self.pos
-        if delta.magnitude() > self.speed:
-            delta.scale_to_length(self.speed)
+        if delta.magnitude > self.speed:
+            delta = delta.scaled(self.speed)
         self.move_to(self.pos + delta)
 
     def push_away_from_player(self):
         delta = self.pos - player.pos
-        delta2 = Vector2(delta)
-        delta2.scale_to_length(self.body_collision_distance * 1.2)
+        delta2 = delta.scaled(self.body_collision_distance * 1.2)
         # print(f"push away self.pos {self.pos} player.pos {player.pos} delta {delta} delta2 {delta2}")
         self.move_to(player.pos + delta2)
 
@@ -901,8 +790,8 @@ class Stalker(BadGuy):
     def move_towards_spot(self):
         pos = player.pos + self.spot_offset
         delta = pos - self.pos
-        if delta.magnitude() > self.speed:
-            delta.scale_to_length(self.speed)
+        if delta.magnitude > self.speed:
+            delta = delta.scaled(self.speed)
         self.move_to(self.pos + delta)
 
 
@@ -926,8 +815,7 @@ class Stalker(BadGuy):
         self.spot_low_watermark = 90
         self.spot_radius_min = 30
         self.spot_radius_max = 70
-        self.spot_offset = Vector2(random.randint(self.spot_radius_min, self.spot_radius_max), 0)
-        self.spot_offset.rotate_ip(random.randint(0, 360))
+        self.spot_offset = Vector2D(random.randint(self.spot_radius_min, self.spot_radius_max), 0).rotated(random.randint(0, 360))
         self.head_to_spot = True
 
     def update(self, dt):
@@ -942,7 +830,7 @@ class Stalker(BadGuy):
         # until they get "too far" from the player,
         # at which point they start moving towards the random spot again.
         delta = player.pos - self.pos
-        distance_to_player = delta.magnitude()
+        distance_to_player = delta.magnitude
 
         threshold = self.spot_low_watermark if self.head_to_spot else self.spot_high_watermark
         self.head_to_spot = distance_to_player > threshold
@@ -960,9 +848,8 @@ class Shot(BadGuy):
     def __init__(self, shooter):
         super().__init__()
         self.shooter = shooter
-        self.pos = Vector2(shooter.shape.pos[0], shooter.shape.pos[1])
-        self.delta = player.pos - self.pos
-        self.delta.scale_to_length(self.speed)
+        self.pos = Vector2D(shooter.shape.pos[0], shooter.shape.pos[1])
+        self.delta = (player.pos - self.pos).scaled(self.speed)
         self.layer = scene.layers[Layers.BULLETS_LAYER]
         self.shape = self.layer.add_circle(
             radius=self.radius,
@@ -1041,7 +928,7 @@ print("[INFO] Creating scene...")
 scene = Scene(1024, 768)
 pause = False
 
-screen_center = Vector2(scene.width / 2, scene.height / 2)
+screen_center = Vector2D(scene.width / 2, scene.height / 2)
 
 def new_game():
     print("[INFO] Spawning player and enemies...")
@@ -1057,14 +944,17 @@ def new_game():
 
     assert not (enemies or walls)
 
-    walls.append(Wall(Vector2(0, 0), Vector2(scene.width, 20)))
-    walls.append(Wall(Vector2(0, scene.height - 20), Vector2(scene.width, scene.height)))
+    ul = Vector2D(0, 0)
+    lr = Vector2D(scene.width, scene.height)
 
-    walls.append(Wall(Vector2(0, 0), Vector2(20, scene.height)))
-    walls.append(Wall(Vector2(scene.width - 20, 0), Vector2(scene.width, scene.height)))
+    walls.append(Wall(ul, Vector2D(scene.width, 20)))
+    walls.append(Wall(Vector2D(0, scene.height - 20), lr))
+
+    walls.append(Wall(ul, Vector2D(20, scene.height)))
+    walls.append(Wall(Vector2D(scene.width - 20, 0), lr))
 
     # and a wall in the middle to play with
-    walls.append(Wall(Vector2(600, 200), Vector2(800, 400)))
+    walls.append(Wall(Vector2D(600, 200), Vector2D(800, 400)))
 
 
     if len(sys.argv) > 1 and sys.argv[1] == "1":
@@ -1079,6 +969,7 @@ def new_game():
         for i in range(5):
             enemies.append(Shooter())
 
+    print("player location", player.pos)
     print("[INFO] Fight!")
 
 def close_game():

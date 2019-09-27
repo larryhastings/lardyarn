@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-from wasabi2d import Vector2
+from vector2d import Vector2D
 
 
 def polygon_collision(poly, circle):
     edges = zip(poly, poly[1:] + poly[:1])
     for i, (a, b) in enumerate(edges):
-        along_x, along_y = (b - a).normalize()
-        across = Vector2(-along_y, along_x)
+        along_x, along_y = (b - a).normalized()
+        across = Vector2D(-along_y, along_x)
         off = across.dot(a)
 
         if across.dot(circle.pos) < off - circle.radius:
@@ -16,15 +16,15 @@ def polygon_collision(poly, circle):
 
 if __name__ == "__main__":
 
-    from wasabi2d import Scene, event, run, keys, Vector2
+    from wasabi2d import Scene, event, run, keys
     from pygame import joystick
 
     scene = Scene()
 
     triangle = [
-        Vector2(100, 400),
-        Vector2(300, 500),
-        Vector2(200, 600)
+        Vector2D(100, 400),
+        Vector2D(300, 500),
+        Vector2D(200, 600)
     ]
 
     scene.layers[0].add_polygon(triangle, fill=False, color='yellow')
