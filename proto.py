@@ -272,27 +272,16 @@ class Player:
         if self.pos == starting_pos:
             return
 
-        collisions = []
-        for wall in walls:
-            collision = wall.collide_with_entity(self)
-            if collision:
-                collisions.append(collision)
+        penetration_vector = detect_wall_collisions(self)
 
-        if collisions:
+        if penetration_vector:
             # we hit one or more walls!
 
-            if len(collisions) == 1:
-                collision_sum = collisions[0]
-            else:
-                collision_sum = Vector2D()
-                for collision in collisions:
-                    collision_sum += collision
+            # print(f"[{frame:6} {time:8}] collision! self.pos {self.pos} momentum {self.momentum} penetration_vector {penetration_vector}")
+            self.pos -= penetration_vector
 
-            # print(f"[{frame:6} {time:8}] collision! self.pos {self.pos} momentum {self.momentum} sum {collision_sum}")
-            self.pos -= collision_sum
-
-            # self.momentum = (-collision_sum).scaled(self.momentum.magnitude)
-            reflection_vector = Polar2D(collision_sum)
+            # self.momentum = (-penetration_vector).scaled(self.momentum.magnitude)
+            reflection_vector = Polar2D(penetration_vector)
             # print(f"  reflection_vector {reflection_vector}")
             # perpendicular to the bounce vector
             reflection_theta = reflection_vector.theta + math.pi / 2
@@ -306,41 +295,6 @@ class Player:
             # print(f"[{frame:6} {time:8}] new self.pos {self.pos} momentum {self.momentum}")
             # print()
 
-            # and zero out the movement vector of all directions in which we hit the wall
-            # if self.pos.x != old_pos.x:
-            #     self.momentum.x = 0
-            # if self.pos.y != old_pos.y:
-            #     self.momentum.y = 0
-
-            if 0:
-                # test zeroing out each component of movement_this_frame
-                # if the resulting movement vector doesn't result in hitting the wall,
-                # leave it in, otherwise zero it out.
-                test_vector = movement_this_frame
-                test_vector.x = 0
-                self.pos = starting_pos + test_vector
-                hit = False
-                for wall in hit_walls:
-                    if wall.collide_with_entity(self):
-                        hit = True
-                        break
-                if hit:
-                    self.momentum.x = 0
-
-                test_vector = movement_this_frame
-                test_vector.y = 0
-                self.pos = starting_pos + test_vector
-                hit = False
-                for wall in hit_walls:
-                    if wall.collide_with_entity(self):
-                        hit = True
-                        break
-                if hit:
-                    self.momentum.y = 0
-                # print(f"hit walls {hit_walls} movement {self.momentum}")
-
-            if 0:
-                self.momentum = Vector2D()
 
         self.zone.pos = self.shape.pos = self.pos
 
@@ -608,6 +562,23 @@ def circle_rect_collision(
     return delta.magnitude_squared <= circle_radius_squared
 
 
+def detect_wall_collisions(entity):
+    collisions = []
+    for wall in walls:
+        collision = wall.collide_with_entity(entity)
+        if collision:
+            collisions.append(collision)
+
+    if not collisions:
+        return None
+    if len(collisions) == 1:
+        return collisions[0]
+
+    cumulative_vector = collisions[0]
+    for collision in collisions[1:]:
+        cumulative_vector += collision
+    return cumulative_vector
+
 class Wall:
     # remember that in Wasabi2d (0, 0) is in the upper-left.
     # x grows as we move right.
@@ -668,6 +639,7 @@ class Wall:
 
 
 class BadGuy:
+    die_on_any_collision = False
 
     def __init__(self):
         global bad_guy_id
@@ -683,6 +655,7 @@ class BadGuy:
         self.zone_collision_distance_squared = self.zone_collision_distance ** 2
 
     def _close(self):
+        self.dead = True
         self.shape.delete()
 
     def close(self):
@@ -708,12 +681,10 @@ class BadGuy:
                 continue
 
             # don't intersect with any walls
-            for wall in walls:
-                if wall.collide_with_entity(self):
-                    break
-            else:
-                break
-            continue
+            if detect_wall_collisions(self):
+                continue
+
+            break
 
     speed = 1
     radius = 1
@@ -731,6 +702,15 @@ class BadGuy:
         elif collision == CollisionType.COLLISION_WITH_PLAYER:
             player.on_collision_body(self)
             self.on_collide_player()
+        else:
+            penetration_vector = detect_wall_collisions(self)
+            if penetration_vector:
+                if self.die_on_any_collision:
+                    self.close()
+                    return
+                self.pos -= penetration_vector
+                self.shape.pos = self.pos
+
 
         if 0:
             vector_to_player = player.pos - self.pos
@@ -794,7 +774,6 @@ class BadGuy:
         self.on_death()
 
     def on_death(self):
-        self.dead = True
         self.close()
 
 
@@ -859,6 +838,7 @@ class Shot(BadGuy):
     radius = 2
     speed = 4
     lifetime = 2
+    die_on_any_collision = True
 
     def __init__(self, shooter):
         super().__init__()
