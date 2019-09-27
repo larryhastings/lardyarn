@@ -166,23 +166,23 @@ class Player:
         # new "zone of destruction"
         self.normal_zone_color = (0.3, 0.3, 0.8)
         self.flashing_zone_color = (0.9, 0.9, 1)
-        if 1:
-            # draw zone as arc
-            vertices = [Vector2D(self.body_radius, 0)]
-            points_on_zone = 12
-            # lame, range only handles ints. duh!
-            start = -self.zone_arc / 2
-            stop = self.zone_arc / 2
-            step = (stop - start) / points_on_zone
-            theta = start
 
-            def append(theta):
-                v = Vector2D(Polar2D(self.zone_radius, theta))
-                v += Vector2D(self.body_radius, 0)
-                vertices.append(tuple(v))
-            while theta < stop:
-                append(theta)
-                theta += step
+        # draw zone as arc
+        vertices = [Vector2D(self.body_radius, 0)]
+        points_on_zone = 12
+        # lame, range only handles ints. duh!
+        start = -self.zone_arc / 2
+        stop = self.zone_arc / 2
+        step = (stop - start) / points_on_zone
+        theta = start
+
+        def append(theta):
+            v = Vector2D(Polar2D(self.zone_radius, theta))
+            v += Vector2D(self.body_radius, 0)
+            vertices.append(tuple(v))
+        while theta < stop:
+            append(theta)
+            theta += step
 
         self.zone_layer = scene.layers[Layers.ZONE_LAYER]
         self.zone = self.zone_layer.add_polygon(vertices, fill=True, color=self.normal_zone_color)
@@ -711,42 +711,6 @@ class BadGuy:
                 self.pos -= penetration_vector
                 self.shape.pos = self.pos
 
-
-        if 0:
-            vector_to_player = player.pos - self.pos
-            distance_squared = vector_to_player.magnitude_squared
-            intersect_outer_radius = distance_squared <= self.outer_collision_distance_squared
-            if intersect_outer_radius:
-                # print(f"{self} interecting outer radius")
-                # are we intersecting with the zone?
-                if not player.zone_layer.visible:
-                    # print("    zone inactive (player is too slow)")
-                    pass
-                else:
-                    # print(f"    player center {player.pos} zone angle {player.zone_angle} zone center {player.zone_center}")
-                    vector_to_zone = player.zone_center - self.pos
-                    intersect_zone_radius = vector_to_zone.magnitude_squared < self.zone_collision_distance_squared
-                    # print(f"    interecting zone? {intersect_zone_radius}")
-                    if intersect_zone_radius:
-                        collision = player.on_collision_zone(self)
-                        if collision == CollisionType.COLLISION_WITH_ZONE:
-                            self.on_collide_zone()
-
-                if self.dead:
-                    # print(f"    dead!")
-                    return
-
-                intersect_body_radius = distance_squared <= self.body_collision_distance_squared
-                # print(f"    interecting body? {intersect_body_radius}")
-
-                if intersect_body_radius:
-                    collision = player.on_collision_body(self)
-                    assert collision != CollisionType.COLLISION_WITH_ZONE
-                    if collision == CollisionType.NO_COLLISION:
-                        return
-
-                    assert collision == CollisionType.COLLISION_WITH_PLAYER
-                    self.on_collide_player()
 
     def move_delta(self, delta):
         v = self.pos + delta
