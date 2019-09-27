@@ -161,7 +161,7 @@ class Player:
             color=(0, 1/2, 0),
             )
 
-        self.movement = Vector2D()
+        self.momentum = Vector2D()
 
         # new "zone of destruction"
         self.normal_zone_color = (0.3, 0.3, 0.8)
@@ -218,7 +218,7 @@ class Player:
 
         # bad_guy intersecting with the zone?
         if self.zone_layer.visible:
-            if polygon_collision(self.zone_triangle, bad_guy):
+            if polygon_collision(self.zone_triangle, bad_guy.pos, bad_guy.radius):
                 return CollisionType.COLLISION_WITH_ZONE
 
         intersect_body_radius = distance_squared <= bad_guy.body_collision_distance_squared
@@ -251,9 +251,9 @@ class Player:
         if acceleration.magnitude > 1.0:
             acceleration = acceleration.normalized()
 
-        self.movement = self.movement * air_resistance ** dt + acceleration_scale * acceleration * dt
-        if self.movement.magnitude > max_speed:
-            self.movement = self.movement.scaled(max_speed)
+        self.momentum = self.momentum * air_resistance ** dt + acceleration_scale * acceleration * dt
+        if self.momentum.magnitude > max_speed:
+            self.momentum = self.momentum.scaled(max_speed)
 
         # Rotate to face the direction of acceleration
         TURN = 12  # radians / s at full acceleration
@@ -267,46 +267,50 @@ class Player:
         self.zone.angle = self.zone_angle = normalize_angle(self.zone_angle)
 
         starting_pos = self.pos
-        movement_this_frame = self.movement * dt
+        movement_this_frame = self.momentum * dt
         self.pos += movement_this_frame
         if self.pos == starting_pos:
             return
 
-        hit_walls = []
+        collisions = []
         for wall in walls:
-            if wall.collide_with_entity(self) == CollisionType.COLLISION_WITH_WALL:
-                hit_walls.append(wall)
+            collision = wall.collide_with_entity(self)
+            if collision:
+                collisions.append(collision)
 
-        if hit_walls:
+        if collisions:
             # we hit one or more walls!
-            # replay a % of the movement so we move as much as possible without hitting.
-            factor = 1.0
-            cumulative_factor = 0
-            working_pos = starting_pos
-            for i in range(10):
-                factor /= 2
-                try_factor = cumulative_factor + factor
-                partial_movement = movement_this_frame * try_factor
 
-                self.pos = starting_pos + partial_movement
-                hit = False
-                for wall in hit_walls:
-                    hit = wall.collide_with_entity(self) == CollisionType.COLLISION_WITH_WALL
-                    if hit:
-                        break
-                if hit:
-                    self.pos = working_pos
-                else:
-                    cumulative_factor = try_factor
-                    working_pos = self.pos
+            if len(collisions) == 1:
+                collision_sum = collisions[0]
+            else:
+                collision_sum = Vector2D()
+                for collision in collisions:
+                    collision_sum += collision
 
-            final_pos = self.pos
+            # print(f"[{frame:6} {time:8}] collision! self.pos {self.pos} momentum {self.momentum} sum {collision_sum}")
+            self.pos -= collision_sum
+
+            # self.momentum = (-collision_sum).scaled(self.momentum.magnitude)
+            reflection_vector = Polar2D(collision_sum)
+            # print(f"  reflection_vector {reflection_vector}")
+            # perpendicular to the bounce vector
+            reflection_theta = reflection_vector.theta + math.pi / 2
+            # print(f"  reflection_theta {reflection_theta}")
+            current_momentum_theta = Polar2D(self.momentum).theta
+            # print(f"current_momentum_theta {current_momentum_theta}")
+            new_momentum_theta = (reflection_theta * 2) - current_momentum_theta
+            # print(f"  new_momentum_theta {new_momentum_theta}")
+            self.momentum = Vector2D(Polar2D(self.momentum.magnitude, new_momentum_theta))
+
+            # print(f"[{frame:6} {time:8}] new self.pos {self.pos} momentum {self.momentum}")
+            # print()
 
             # and zero out the movement vector of all directions in which we hit the wall
             # if self.pos.x != old_pos.x:
-            #     self.movement.x = 0
+            #     self.momentum.x = 0
             # if self.pos.y != old_pos.y:
-            #     self.movement.y = 0
+            #     self.momentum.y = 0
 
             if 0:
                 # test zeroing out each component of movement_this_frame
@@ -317,29 +321,30 @@ class Player:
                 self.pos = starting_pos + test_vector
                 hit = False
                 for wall in hit_walls:
-                    if wall.collide_with_entity(self) == CollisionType.COLLISION_WITH_WALL:
+                    if wall.collide_with_entity(self):
                         hit = True
                         break
                 if hit:
-                    self.movement.x = 0
+                    self.momentum.x = 0
 
                 test_vector = movement_this_frame
                 test_vector.y = 0
                 self.pos = starting_pos + test_vector
                 hit = False
                 for wall in hit_walls:
-                    if wall.collide_with_entity(self) == CollisionType.COLLISION_WITH_WALL:
+                    if wall.collide_with_entity(self):
                         hit = True
                         break
                 if hit:
-                    self.movement.y = 0
-                # print(f"hit walls {hit_walls} movement {self.movement}")
+                    self.momentum.y = 0
+                # print(f"hit walls {hit_walls} movement {self.momentum}")
 
-            self.movement = Vector2D()
+            if 0:
+                self.momentum = Vector2D()
 
         self.zone.pos = self.shape.pos = self.pos
 
-        current_speed = self.movement.magnitude
+        current_speed = self.momentum.magnitude
         zone_currently_active = current_speed >= self.zone_activation_speed
         if zone_currently_active:
             if not self.zone_layer_active:
@@ -536,6 +541,7 @@ max_speed = 700 # max observed speed is 691 anyway
 max_shield_delta = math.tau / 6
 
 time = 0
+frame = 0
 
 enemies = []
 walls = []
@@ -543,6 +549,7 @@ walls = []
 @event
 def update(dt, keyboard):
     global time
+    global frame
 
     if keyboard.escape:
         sys.exit("[INFO] Quittin' time!")
@@ -555,6 +562,7 @@ def update(dt, keyboard):
         return
 
     time += dt
+    frame += 1
 
     player.update(dt, keyboard)
 
@@ -616,6 +624,13 @@ class Wall:
         self.pos = Vector2D(upper_left.x + (self.width / 2), upper_left.y + (self.height / 2))
         # print(f"WALL ul {upper_left} lr {lower_right} pos {self.pos} wxh {self.width} {self.height}")
 
+        self.collision_edges = [
+            upper_left,
+            Vector2D(lower_right.x, upper_left.y),
+            lower_right,
+            Vector2D(upper_left.x, lower_right.y),
+            ]
+
         if visible:
             self.layer = scene.layers[Layers.WALL_LAYER]
             self.shape = self.layer.add_rect(
@@ -648,8 +663,8 @@ class Wall:
             entity.pos, player.radius_squared,
             self.upper_left,
             self.lower_right):
-            return CollisionType.COLLISION_WITH_WALL
-        return CollisionType.NO_COLLISION
+            return polygon_collision(self.collision_edges, entity.pos, entity.radius)
+        return None
 
 
 class BadGuy:
@@ -694,7 +709,7 @@ class BadGuy:
 
             # don't intersect with any walls
             for wall in walls:
-                if wall.collide_with_entity(self) != CollisionType.NO_COLLISION:
+                if wall.collide_with_entity(self):
                     break
             else:
                 break
@@ -925,6 +940,19 @@ def on_key_down(key, mod):
 
 print("[INFO] Creating scene...")
 
+# reminder:
+#
+# (0, 0) is the upper left
+#
+# (0, 0)---------------------------+
+# |                                |
+# |                                |
+# |                                |
+# |                                |
+# |                                |
+# |                                |
+# |                                |
+# +----------------------(1024, 768)
 scene = Scene(1024, 768)
 pause = False
 
@@ -958,7 +986,7 @@ def new_game():
 
 
     if len(sys.argv) > 1 and sys.argv[1] == "1":
-        enemies.append(Stalker(fast=True))
+        enemies.append(Stalker(fast=False))
     else:
         for i in range(15):
             enemies.append(Stalker(fast=False))

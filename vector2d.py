@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 from math import sin, cos, atan2, sqrt
 
+def repr_float(f):
+    return f"{f:3.4f}"
+
+
 class Vector2D:
 
     def __init__(self, x=None, y=None):
@@ -21,7 +25,7 @@ class Vector2D:
         self.__dict__['y'] = y
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} ({self.x}, {self.y})>"
+        return f"<{self.__class__.__name__} ({repr_float(self.x)}, {repr_float(self.y)})>"
 
     def __getitem__(self, index):
         if index == 0:
@@ -39,6 +43,9 @@ class Vector2D:
     def __iter__(self):
         yield self.x
         yield self.y
+
+    def __neg__(self):
+        return self.__class__(-self.x, -self.y)
 
     def __add__(self, other):
         if isinstance(other, Polar2D):
@@ -64,6 +71,9 @@ class Vector2D:
         else:
             x = y = other
         return self.__class__(self.x - x, self.y - y)
+
+    def __bool__(self):
+        return bool(self.x or self.y)
 
     def dot(self, other):
         if not isinstance(other, Vector2D):
@@ -135,7 +145,7 @@ class Polar2D:
         self.__dict__['theta'] = theta
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} ({self.r}, {self.theta})>"
+        return f"<{self.__class__.__name__} ({repr_float(self.r)}, {repr_float(self.theta)})>"
 
     def __getitem__(self, index):
         if index == 0:
@@ -153,6 +163,13 @@ class Polar2D:
     def __iter__(self):
         yield self.r
         yield self.theta
+
+    def __neg__(self):
+        if self.theta > 0:
+            theta = self.theta - math.pi
+        else:
+            theta = self.theta + math.pi
+        return self.__class__(self.r, theta)
 
     def __add__(self, other):
         v2 = Vector2D(self)
@@ -174,6 +191,9 @@ class Polar2D:
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __bool__(self):
+        return bool(self.r)
 
 
 if __name__ == "__main__":
