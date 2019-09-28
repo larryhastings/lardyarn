@@ -8,6 +8,7 @@ class CollisionType(enum.IntEnum):
 
 
 class Layers(enum.IntEnum):
+    FLOOR = -1
     DEBRIS = 0
     WALL = 1
     LOWER_EFFECTS = 2

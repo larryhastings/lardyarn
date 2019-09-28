@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import sys
+import random
 
 from wasabi2d import Vector2
 from pygame import joystick
@@ -212,17 +213,7 @@ class Level:
 
         assert not (enemies or walls)
 
-        ul = Vector2D(0, 0)
-        lr = Vector2D(scene.width, scene.height)
-
-        walls.append(Wall(self, ul, Vector2D(scene.width, 20)))
-        walls.append(Wall(self, Vector2D(0, scene.height - 20), lr))
-
-        walls.append(Wall(self, ul, Vector2D(20, scene.height)))
-        walls.append(Wall(self, Vector2D(scene.width - 20, 0), lr))
-
-        # and a wall in the middle to play with
-        walls.append(Wall(self, Vector2D(600, 200), Vector2D(800, 400)))
+        generate_level(self)
 
         if len(sys.argv) > 1 and sys.argv[1] == "1":
             enemies.append(Blob(self))
@@ -253,3 +244,44 @@ class Level:
         for wall in self.walls:
             wall._close()
         self.walls.clear()
+
+
+# Components
+ENDS = 3
+MIDS = 3
+
+
+def generate_level(level):
+    left = random.randrange(ENDS) + 1
+    mid = random.randrange(MIDS) + 1
+    right = random.randrange(ENDS) + 1
+
+    scene = level.scene
+
+    l = 17
+    t = 34
+    sprites = [
+        (f'bg-end-{left}', (l + 165, 350 + t)),
+        (f'bg-mid-{mid}', (l + 165 + 330, 350 + t)),
+        (f'bg-end-{right}', (l + 165 + 660, 350 + t)),
+    ]
+    for name, pos in sprites:
+        w = scene.layers[Layers.ENTITIES].add_sprite(f'{name}-wall', pos=pos)
+    w.angle = math.pi
+    for name, pos in sprites:
+        w = scene.layers[Layers.FLOOR].add_sprite(f'{name}-floor', pos=pos)
+    w.angle = math.pi
+    scene.background = '#2c332d'
+
+    ul = Vector2D(0, 0)
+    lr = Vector2D(scene.width, scene.height)
+
+    walls = level.walls
+    def rect(tl, br):
+        walls.append(Wall(level, tl, br, False))
+
+    rect(ul, Vector2D(scene.width, 30 + t))
+    rect(Vector2D(0, scene.height - 30 - t), lr)
+
+    rect(ul, Vector2D(30 + l, scene.height))
+    rect(Vector2D(scene.width - 30 - l, 0), lr)
