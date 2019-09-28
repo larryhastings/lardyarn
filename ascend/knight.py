@@ -11,15 +11,6 @@ from .constants import Layers, CollisionType
 from . import control
 
 
-def angle_diff(a, b):
-    """Subtract angle b from angle a.
-
-    Return the difference in the smallest direction.
-    """
-    diff = (a - b) % math.tau
-    return min(diff, diff - math.tau, key=abs)
-
-
 class Hand:
     """An object held in the knight's hand."""
     knight: 'Knight'
@@ -421,6 +412,7 @@ max_speed = 700  # max observed speed is 691 anyway
 
 
 max_speed_measured = 691.0
+
 
 class Player:
     dead = False

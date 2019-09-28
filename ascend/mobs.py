@@ -115,9 +115,12 @@ class Skeleton:
         )
 
         self.target = random.choice(level.pcs) if level.pcs else None
+        self.t = 0
         self.bob = 1.0
-        self.gait_speed = random.uniform(0.3, 0.5)
+        self.last_pos = Vector2D()
+        self.gait_speed = random.uniform(0.007, 0.009)
         self.gait_step = random.uniform(1.07, 1.2)
+        clock.each_tick(self.update)
 
     SPEED = 30
 
@@ -135,20 +138,20 @@ class Skeleton:
         angle_to_target = math.radians(angle_deg)
         self.head.angle = angle_to_target
 
-        if dist > 30:
-            self.head.pos += to_target.normalize() * self.SPEED * dt
-            self.body.pos = self.head.pos
-            self.bob += self.gait_speed * dt
-            if self.bob > self.gait_step:
-                self.bob = 1.0
-            self.head.scale = self.bob
-            self.body.scale = 1 + 0.5 * (self.bob - 1.0)
+        cur_pos = Vector2D(self.head.pos)
+        dist = (cur_pos - self.last_pos).magnitude
+        self.last_pos = cur_pos
 
-        self.body_animate = animate(
-            self.body, duration=0.3, angle=angle_to_target
-        )
+        self.t += dist * self.gait_speed
+
+        self.bob += self.gait_speed * dist
+        if self.bob > self.gait_step:
+            self.bob = 1.0
+        self.head.scale = self.body.scale = self.bob
+        self.body.angle = angle_to_target + 0.1 * np.sin(self.t * 50)
 
     def delete(self):
+        clock.unschedule(self.update)
         self.head.delete()
         self.body.delete()
         if self.body_animate:

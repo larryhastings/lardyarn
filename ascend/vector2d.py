@@ -77,8 +77,7 @@ class Vector2D:
             x = y = other
         return self.__class__(self.x + x, self.y + y)
 
-    def __radd__(self, other):
-        return self.__radd__(other)
+    __radd__ = __add__
 
     def __sub__(self, other):
         if isinstance(other, Polar2D):
