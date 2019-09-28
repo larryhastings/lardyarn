@@ -165,11 +165,10 @@ class Knight:
         shield_sprite = scene.layers[Layers.ENTITIES].add_sprite('shield')
         sword_sprite = scene.layers[Layers.UPPER_EFFECTS].add_sprite('sword-gripped')
         sword_sprite.color = (1.4, 1.4, 1.4, 1)
-        self.knight = scene.layers[Layers.ENTITIES].add_sprite('knight')
-        self.head = scene.layers[Layers.ENTITIES].add_sprite('knight-head')
-
-        for spr in (self.knight, self.head):
-            spr.color = color
+        self.knight = scene.layers[Layers.ENTITIES].add_sprite(
+            'knight',
+            color=color
+        )
 
         self.shield = Hand(
             sprite=shield_sprite,
@@ -199,7 +198,7 @@ class Knight:
 
     @pos.setter
     def pos(self, v):
-        self.head.pos = self.knight.pos = v
+        self.knight.pos = v
         self.shield.update()
         self.sword.update()
 
@@ -235,7 +234,7 @@ class Knight:
 
             # Scale the knight to simulate gait
             bob = 1.1 + 0.1 * np.sin(self.step / 500)
-            self.knight.scale = self.head.scale = bob
+            self.knight.scale = bob
         self.last_pos = Vector2(*self.pos)
 
     def throw_bomb(self):
@@ -251,7 +250,6 @@ class Knight:
 
     def delete(self):
         """Remove the knight from the scene."""
-        self.head.delete()
         self.knight.delete()
         self.shield.delete()
         self.sword.delete()
@@ -388,11 +386,6 @@ class KnightController:
             self.knight.angle += max(dt * da * -self.TURN, delta)
         else:
             self.knight.angle += min(dt * da * self.TURN, delta)
-
-        if da < 0.1:
-            self.knight.head.angle = self.knight.angle
-        else:
-            self.knight.head.angle = accel_angle
 
         # Keep within the play area
         sz = Vector2(self.knight.radius, self.knight.radius)

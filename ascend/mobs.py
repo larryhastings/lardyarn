@@ -778,26 +778,58 @@ class Spawner(ShooterBase):
     def move(self, dt):
         self.move_towards_pos(self.final_position)
 
+
 class Prince(Entity):
     radius = 20
 
     def __init__(self, level, pos):
         super().__init__(level)
         self.layer = level.scene.layers[Layers.ENTITIES]
-        self.shape = self.layer.add_star(
-            points=8,
-            outer_radius=self.radius,
-            inner_radius=self.radius / 3,
-            fill=True,
-            color=(0.8, 0.15, 0.8, 1),
-        )
+        self.shape = self.layer.add_sprite('prince')
         self.pos = self.shape.pos = pos
+        self.hearts = level.scene.layers[Layers.HUD].add_particle_group(
+            texture='heart',
+            grow=1.1,
+            max_age=3,
+            gravity=(0, -100),
+            drag=0.1,
+        )
+        self.hearts.add_color_stop(0, (1, 1, 1, 0))
+        self.hearts.add_color_stop(0.2, (1, 1, 1, 1))
+        self.hearts.add_color_stop(1, (1, 1, 1, 1))
+        self.hearts.add_color_stop(3, (1, 1, 1, 0))
+        self.level.objects.append(self)
 
     def on_collide_player(self):
         self.level.game.win()
 
     def on_collide_zone(self):
+        self.die()
+
+    def close(self):
+        self.level.objects.remove(self)
+        if self.shape:
+            self.shape.delete()
+            self.hearts.delete()
+            self.shape = None
+
+    def die(self, v):
         self.level.game.lose("You killed the prince!")
+        self.close()
+
+    def move_delta(self, d):
+        pass
+
+    HEART_RATE = 1
 
     def update(self, dt):
-        pass
+        if not self.shape:
+            return
+        self.shape.angle = (self.level.player.pos - self.pos).angle()
+        self.hearts.emit(
+            num=np.random.poisson(dt * self.HEART_RATE),
+            pos=Vector2D(self.shape.pos) - Vector2D(0, 30),
+            vel_spread=30,
+            size=5,
+            size_spread=2,
+        )

@@ -203,7 +203,7 @@ class Level:
             for k in self.hash_coords(w.r):
                 self.wall_hash.setdefault(k, []).append(w)
 
-    HASH_SCALE = 80
+    HASH_SCALE = 30
 
     def hash_coords(self, rect):
         """Get an iterable of spatial hash keys."""
