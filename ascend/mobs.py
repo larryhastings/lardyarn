@@ -24,6 +24,7 @@ class MagicMissile:
         self.sprite.color = (0.4, 2.0, 0.4, 1.0)
         self.sprite.scale = 0.3
         self.age = 0
+        self.level.objects.append(self)
         clock.each_tick(self.update)
 
     @property
@@ -56,11 +57,14 @@ class MagicMissile:
             color=(0.2, 1, 0.2, 1),
         )
 
+    deleted = False
     def delete(self):
         """Remove the missile from the level."""
-        clock.unschedule(self.update)
-        self.level.objects.remove(self)
-        self.sprite.delete()
+        if not self.deleted:
+            self.deleted = True
+            clock.unschedule(self.update)
+            self.level.objects.remove(self)
+            self.sprite.delete()
 
     def hit(self):
         """Kill the missile, showing an effect like it hit something."""
@@ -612,7 +616,6 @@ class Shot(BadGuy):
         self.pos = Vector2D(shooter.shape.pos[0], shooter.shape.pos[1])
         self.delta = (player.pos - self.pos).scaled(self.speed)
         self.shape = MagicMissile(self.level, self.pos, self.delta)
-        self.level.objects.append(self.shape)
         self.expiration_date = self.game.time + self.lifetime
         sounds.enemy_shot.play()
 

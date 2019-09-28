@@ -433,7 +433,18 @@ class Level:
                     princes=1,
                     next="title screen", # we won't get there
                     ),
+
+                "1each" : LevelSpawner(self,
+                    slow_stalkers = 1,
+                    fast_stalkers = 1,
+                    splitters = 1,
+                    shooters = 1,
+                    spawners = 1,
+                    blobs = 1,
+                    next = "title screen",
+                    ),
             }
+            level_spawners['prince'] = level_spawners['7']
             spawner = level_spawners.get(self.name)
         assert spawner, "didn't have a spawner for level " + self.name
         spawner.spawn()
