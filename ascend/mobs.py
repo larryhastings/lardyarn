@@ -237,7 +237,8 @@ class BadGuy:
 
     def _close(self):
         self.dead = True
-        self.shape.delete()
+        if self.shape:
+            self.shape.delete()
 
     def close(self):
         self.level.enemies.remove(self)
@@ -349,17 +350,20 @@ class Stalker(BadGuy):
         super().__init__(level)
         if fast:
             self.speed = 1.75
-            color = (1, 0.75, 0)
+            #color = (1, 0.75, 0)
         else:
             self.speed = 0.8
-            color = (0.8, 0.3, 0.3)
+            #color = (0.8, 0.3, 0.3)
 
-        self.shape = Skeleton(self.level, Vector2D(0, 0))
+        self._mkshape()
         if pos is None:
             self.random_placement()
         else:
             self.pos = self.shape.pos = pos
         self.init_spot()
+
+    def _mkshape(self):
+        self.shape = Skeleton(self.level, Vector2D(0, 0))
 
     def _close(self):
         self.shape.die(Vector2D())
@@ -370,32 +374,86 @@ class Stalker(BadGuy):
         self.move_towards_spot()
 
 
+class Blobby:
+    def __init__(self, scene, pos=Vector2D(), radius=20):
+        self.radius = radius
+        self.scene = scene
+        layer = scene.layers[Layers.ENTITIES]
+        self.shape = layer.add_sprite('blob')
+        self.shape.angle = random.uniform(-1, 1)
+
+        self.bounciness = Vector2D(1.1, 0.9) * (radius / 20)
+        self.shape.pos = pos
+        self.squish_x = random.choice([True, False])
+        self.bounce()
+        clock.schedule_interval(self.bounce, 0.5)
+
+    @property
+    def pos(self):
+        return self.shape.pos
+
+    @pos.setter
+    def pos(self, v):
+        self.shape.pos = v
+
+    def bounce(self):
+        self.squish_x = not self.squish_x
+        x, y = self.bounciness
+        if self.squish_x:
+            x, y = y, x
+        self.anim = animate(
+            self.shape,
+            'accel_decel',
+            duration=0.5,
+            scale_x=x,
+            scale_y=y,
+        )
+
+    def delete(self):
+        self.anim.stop()
+        clock.unschedule(self.bounce)
+        self.shape.delete()
+
+    def die(self, vel=Vector2D()):
+        self.scene.smoke.emit(
+            num=self.radius,
+            pos=self.shape.pos,
+            vel=-0.4 * vel,
+            vel_spread=5 * self.radius,
+            spin_spread=1,
+            size=3 * (self.radius / 10),
+            size_spread=3,
+            angle_spread=3,
+            color='#cc00ccff'
+        )
+        self.delete()
+
+
+class StalkerBlob(Stalker):
+    def _mkshape(self):
+        self.shape = Blobby(self.game.scene, radius=self.radius)
+
+
 class Splitter(BadGuy):
     radius = 20
 
     def __init__(self, level):
         super().__init__(level)
         self.speed = 1.3
-        color = (0.5, 0.2, 0.5)
 
-        layer = self.game.scene.layers[Layers.ENTITIES]
-        self.shape = layer.add_star(
-            points=4,
-            outer_radius=self.radius,
-            inner_radius=self.radius/2,
-            fill=True,
-            color=color,
-            )
+        self.shape = Blobby(self.game.scene, radius=self.radius)
         self.random_placement()
         self.init_spot()
 
     def close(self):
+        self.shape.die()
+        self.shape = None
         delta = Polar2D(self.pos - self.level.player.pos)
         for i in range(2):
             delta = Polar2D(60, delta.theta + math.tau / 3)
             self.level.enemies.append(
-                Stalker(self.level, pos=self.pos + delta, fast=True)
-                )
+                StalkerBlob(self.level, pos=self.pos + delta, fast=True)
+            )
 
         super().close()
 
@@ -404,8 +462,10 @@ class Splitter(BadGuy):
             return
         self.move_towards_spot()
 
+
 class IndividualBlob(BadGuy):
     radius = 15
+
     def __init__(self, level, leader):
         super().__init__(level)
 
@@ -414,11 +474,9 @@ class IndividualBlob(BadGuy):
         else:
             self.init_leader()
 
-        self.shape = level.scene.layers[Layers.ENTITIES].add_circle(
-            radius=self.radius,
-            color=(0.1, 0.5, 0),
-            )
-
+        self.shape = level.scene.layers[Layers.ENTITIES].add_sprite(
+            'blob',
+        )
         self.random_placement()
 
     def init_leader(self):
@@ -478,13 +536,12 @@ class IndividualBlob(BadGuy):
 
         self.move_towards_pos(self.leader.pos)
 
+
 def Blob(level, count=30):
     leader = IndividualBlob(level, None)
     for i in range(count-1):
         level.enemies.append(IndividualBlob(level, leader))
     return leader
-
-
 
 
 class Shot(BadGuy):
@@ -553,5 +610,3 @@ class Shooter(BadGuy):
         self.move_towards_spot()
         if self.level.game.time >= self.next_shot_time:
             self.shoot()
-
-
