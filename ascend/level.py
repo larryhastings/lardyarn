@@ -349,25 +349,38 @@ class Level:
 
                 level.next = self.next
 
-        level_spawners = {
-            "1": LevelSpawner(self,
-                slow_stalkers=2,
-                # slow_stalkers=20,
-                # fast_stalkers=4,
-                next="2"
-                ),
-            "2": LevelSpawner(self,
-                # slow_stalkers=30,
-                # shooters=5,
-                shooters=1,
-                next="3"
-                ),
-            "3": LevelSpawner(self,
-                princes=1,
-                next="title screen", # we won't get there
-                ),
-        }
-        spawner = level_spawners.get(self.name)
+        if self.name.startswith("Endless "):
+            level_number = int(self.name[8:])
+            def n(base_n, max_n):
+                return base_n + random.randint(base_n * level_number, max_n * level_number)
+            spawner = LevelSpawner(self,
+                    slow_stalkers=n(4, 6),
+                    fast_stalkers=n(2, 3),
+                    shooters=n(0, 4),
+                    blobs=0 if level_number < 3 else random.randint(0, 1),
+                    spawners=0 if level_number < 5 else random.randint(0, 2),
+                    next="Endless " + str(level_number + 1)
+                    )
+        else:
+            level_spawners = {
+                "1": LevelSpawner(self,
+                    slow_stalkers=2,
+                    # slow_stalkers=20,
+                    # fast_stalkers=4,
+                    next="2"
+                    ),
+                "2": LevelSpawner(self,
+                    # slow_stalkers=30,
+                    # shooters=5,
+                    shooters=1,
+                    next="3"
+                    ),
+                "3": LevelSpawner(self,
+                    princes=1,
+                    next="title screen", # we won't get there
+                    ),
+            }
+            spawner = level_spawners.get(self.name)
         assert spawner, "didn't have a spawner for level " + self.name
         spawner.spawn()
 
@@ -436,7 +449,7 @@ class Level:
             f"ROLLER KNIGHT\n"
             "\n"
             f"Press Space {or_button_0}for New Game\n"
-            # "Press 1 or Button 4 for Endless Challenge\n"
+            "Press 1 or Button 4 for an Endless Challenge\n"
             "Press Escape to... escape\n"
             "\n"
             "Copyright 2019 by Darn Yard Lad\n"
@@ -450,14 +463,19 @@ class Level:
 
     def title_screen_update(self, t, dt, keyboard):
         # debounce button
+        endless_pressed = keyboard.k_2
         new_game_button_pressed = keyboard.space
-        if not new_game_button_pressed and control.stick:
+        button_pressed = endless_pressed or new_game_button_pressed
+        if not button_pressed and control.stick:
+            endless_pressed = control.stick.get_button(4)
             new_game_button_pressed = control.stick.get_button(0)
 
         if new_game_button_pressed:
-            self.proceed_on_button_release = True
+            self.proceed_on_button_release = "1"
+        elif endless_pressed:
+            self.proceed_on_button_release = "Endless 1"
         elif self.proceed_on_button_release:
-            level = Level(self.game, '1')
+            level = Level(self.game, self.proceed_on_button_release)
             self.game.go_to_level(level)
 
 
