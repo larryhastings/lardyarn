@@ -247,10 +247,3 @@ class Level:
         for wall in self.walls:
             wall._close()
         self.walls.clear()
-
-        # clear out all layers
-        for layer in dir(Layers):
-            if layer.startswith("_"):
-                continue
-            value = getattr(Layers, layer)
-            self.scene.layers[value].clear()

@@ -31,7 +31,6 @@ class Game:
         event(self.update)
         self.create_scene()
 
-
     def create_scene(self):
         print("[INFO] Creating scene...")
         self.scene = scene = Scene(
@@ -42,6 +41,10 @@ class Game:
         )
 
         scene.background = (0.2, 0.2, 0.2)
+
+    def init_scene(self):
+        scene = self.scene
+
         scene.layers[Layers.WALL].set_effect(
             'dropshadow',
             radius=2,
@@ -96,11 +99,21 @@ class Game:
             pgroup.add_color_stop(1, '#bbbbbbff')
             pgroup.add_color_stop(4, '#bbbbbb00')
 
+    def clear_scene(self):
+        for layer in dir(Layers):
+            if layer.startswith("_"):
+                continue
+            value = getattr(Layers, layer)
+            self.scene.layers[value].clear()
+
+
     def new(self):
         print("[INFO] New game.")
 
         self.delete_level()
         self.paused = False
+
+        self.init_scene()
 
         self.level = Level(self, self.gametype)
 
@@ -108,6 +121,7 @@ class Game:
 
     def delete(self):
         self.delete_level()
+        self.clear_scene()
 
     def delete_level(self):
         if self.level:
