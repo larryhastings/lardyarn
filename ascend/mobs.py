@@ -532,12 +532,12 @@ class Bloblet(BadGuy):
     def init_leader(self):
         self.leader = None
         animate(self, radius=30)
-        self.speed = 1
+        self.speed = 0.8
         self.blobs = set((self,))
 
     def init_follower(self, leader):
         self.leader = leader
-        self.speed = 1
+        self.speed = 2.5
         leader.blobs.add(self)
 
     def close(self):
@@ -646,7 +646,8 @@ class ShooterBase(BadGuy):
 
     def shoot(self):
         shot = self.make_shot()
-        self.level.enemies.append(shot)
+        if shot:
+            self.level.enemies.append(shot)
         self._next_shot_time()
 
     def move(self):
@@ -683,6 +684,7 @@ class Shooter(ShooterBase):
             self.initial_speed = None
             self.speed = self.final_speed
 
+        self.level.shooters.add(self)
         self._next_shot_time()
         clock.each_tick(self.smoke)
 
@@ -701,6 +703,7 @@ class Shooter(ShooterBase):
         )
 
     def close(self):
+        self.level.shooters.discard(self)
         self.level.scene.skulls.emit(
             1,
             pos=self.pos,
@@ -731,8 +734,8 @@ class Shooter(ShooterBase):
 
 class Spawner(ShooterBase):
 
-    min_time = 0.25
-    max_time = 0.8
+    min_time = 0.6
+    max_time = 1.4
 
     spawn_distance = 20
     radius = 20
@@ -763,6 +766,9 @@ class Spawner(ShooterBase):
         self._next_shot_time()
 
     def make_shot(self):
+        if len(self.level.shooters) >= 10:
+            return None
+
         delta = self.level.player.pos - self.pos
         if delta.magnitude > self.spawn_distance:
             delta = delta.scaled(self.spawn_distance)

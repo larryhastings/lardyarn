@@ -26,6 +26,11 @@ class Game:
         self.frame = 0
         self.paused = False
 
+        if len(sys.argv) > 1:
+            self.new_game_level = sys.argv[1]
+        else:
+            self.new_game_level = "title screen"
+
         event(self.update)
         self.create_scene()
 
@@ -111,7 +116,7 @@ class Game:
 
     def new(self):
         print("[INFO] New game.")
-        level = Level(self, "title screen")
+        level = Level(self, self.new_game_level)
         return self.go_to_level(level)
 
     def go_to_level(self, level):

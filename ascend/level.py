@@ -53,6 +53,7 @@ class Level:
 
         self.player = None
         self.enemies = []
+        self.shooters = set()
         self.walls = []
         self.update = self.larry_update
         self.name = name
@@ -302,7 +303,7 @@ class Level:
                 self.slow_stalkers = slow_stalkers
                 self.fast_stalkers = fast_stalkers
                 self.splitters = splitters
-                self.shooters = shooters
+                self.shooters = min(shooters, 10)
                 self.spawners = spawners
                 self.blobs = blobs
                 self.princes = princes
@@ -337,15 +338,25 @@ class Level:
                         ]
                     random.shuffle(corners)
                     for i, corner in zip(range(self.spawners), corners):
-                        enemies.append(Spawners(level, corner))
+                        enemies.append(Spawner(level, corner))
 
                 for i in range(self.blobs):
-                    enemies.append(Spawners(level))
+                    enemies.append(Blob(level))
 
                 if self.princes:
                     assert not enemies
+                    scene = level.scene
+
                     three_quarters_across = Vector2D(scene.width * 3 / 4, scene.height / 2)
                     enemies.append(Prince(level, three_quarters_across))
+
+                    scene.layers[Layers.TEXT].add_label(
+                        text="You've found the prince!  Go to him!",
+                        fontsize=48,
+                        align="center",
+                        pos=Vector2D(scene.width / 2, (scene.height * 3 / 4)),
+                        font='magic_medieval',
+                    )
 
                 level.next = self.next
 
@@ -356,7 +367,7 @@ class Level:
             spawner = LevelSpawner(self,
                     slow_stalkers=n(4, 6),
                     fast_stalkers=n(2, 3),
-                    shooters=n(0, 4),
+                    shooters=0 if level_number < 2 else n(0, 2),
                     blobs=0 if level_number < 3 else random.randint(0, 1),
                     spawners=0 if level_number < 5 else random.randint(0, 2),
                     next="Endless " + str(level_number + 1)
@@ -367,7 +378,7 @@ class Level:
                     slow_stalkers=2,
                     # slow_stalkers=20,
                     # fast_stalkers=4,
-                    next="2"
+                    next="5"
                     ),
                 "2": LevelSpawner(self,
                     # slow_stalkers=30,
@@ -376,6 +387,31 @@ class Level:
                     next="3"
                     ),
                 "3": LevelSpawner(self,
+                    # slow_stalkers=30,
+                    # shooters=5,
+                    splitters=2,
+                    next="4"
+                    ),
+                "4": LevelSpawner(self,
+                    slow_stalkers=5,
+                    fast_stalkers=1,
+                    shooters=1,
+                    splitters=2,
+                    next="5"
+                    ),
+                "5": LevelSpawner(self,
+                    blobs=1,
+                    next="6"
+                    ),
+                "6": LevelSpawner(self,
+                    slow_stalkers=10,
+                    fast_stalkers=4,
+                    splitters=5,
+                    shooters=3,
+                    spawners=2,
+                    next="7"
+                    ),
+                "7": LevelSpawner(self,
                     princes=1,
                     next="title screen", # we won't get there
                     ),
