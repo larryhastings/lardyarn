@@ -387,33 +387,33 @@ class Level:
         else:
             level_spawners = {
                 "1": LevelSpawner(self,
-                    slow_stalkers=2,
-                    # slow_stalkers=20,
-                    # fast_stalkers=4,
-                    next="5"
+                    # slow_stalkers=2,
+                    slow_stalkers=20,
+                    fast_stalkers=4,
+                    next="2",
                     ),
                 "2": LevelSpawner(self,
-                    # slow_stalkers=30,
-                    # shooters=5,
-                    shooters=1,
-                    next="3"
+                    slow_stalkers=30,
+                    shooters=2,
+                    # shooters=1,
+                    next="3",
                     ),
                 "3": LevelSpawner(self,
-                    # slow_stalkers=30,
-                    # shooters=5,
+                    slow_stalkers=30,
+                    shooters=4,
                     splitters=2,
-                    next="4"
+                    next="4",
                     ),
                 "4": LevelSpawner(self,
                     slow_stalkers=5,
                     fast_stalkers=1,
                     shooters=1,
                     splitters=2,
-                    next="5"
+                    next="5",
                     ),
                 "5": LevelSpawner(self,
                     blobs=1,
-                    next="6"
+                    next="6",
                     ),
                 "6": LevelSpawner(self,
                     slow_stalkers=10,
@@ -421,7 +421,7 @@ class Level:
                     splitters=5,
                     shooters=3,
                     spawners=2,
-                    next="7"
+                    next="7",
                     ),
                 "7": LevelSpawner(self,
                     princes=1,
@@ -494,6 +494,7 @@ class Level:
         or_button_1 = "or button 1 " if control.stick else ""
         self.show_message(
             "Level Complete\n"
+            f"Next up: Level {self.next}\n"
             f"Press Space {or_button_1}to continue\n"
         )
         sounds.game_won.play()

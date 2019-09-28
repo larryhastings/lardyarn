@@ -177,9 +177,9 @@ class Gib:
     def update(self, dt):
         self.age += dt
         self.vel *= 0.2 ** dt
-        self.sprite.pos += self.vel * dt
-
-        self.sprite.scale -= 0.2 * dt
+        if self.sprite:
+            self.sprite.pos += self.vel * dt
+            self.sprite.scale -= 0.2 * dt
 
         if self.age > 1:
             self.delete()
@@ -195,10 +195,14 @@ class Gib:
             color='#cc0000ff'
         )
 
+    deleted = False
     def delete(self):
-        clock.unschedule(self.update)
-        self.sprite.delete()
-        self.sprite = None
+        if not self.deleted:
+            self.level.objects.remove(self)
+            self.deleted = True
+            clock.unschedule(self.update)
+            self.sprite.delete()
+            self.sprite = None
 
 
 class Skeleton:
@@ -553,19 +557,22 @@ class Splitter(BadGuy):
         self.random_placement()
         self.init_spot()
 
+    deleted = False
     def delete(self):
-        self.shape.die()
-        self.shape = None
-        if self.level.player:
-            # game over
-            delta = Polar2D(self.pos - self.level.player.pos)
-            for i in range(2):
-                delta = Polar2D(60, delta.theta + math.tau / 3)
-                self.level.enemies.append(
-                    StalkerBlob(self.level, pos=self.pos + delta, fast=True)
-                )
+        if not self.deleted:
+            self.deleted = True
+            self.shape.die()
+            self.shape = None
+            if self.level.player:
+                # game over
+                delta = Polar2D(self.pos - self.level.player.pos)
+                for i in range(2):
+                    delta = Polar2D(60, delta.theta + math.tau / 3)
+                    self.level.enemies.append(
+                        StalkerBlob(self.level, pos=self.pos + delta, fast=True)
+                    )
 
-        super().delete()
+            super().delete()
 
     def update(self, dt):
         if self.dead:
