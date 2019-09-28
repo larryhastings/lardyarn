@@ -660,6 +660,7 @@ class ShooterBase(BadGuy):
         if self.level.game.time >= self.next_shot_time:
             self.shoot()
 
+
 class Shooter(ShooterBase):
     final_speed = ShooterBase.speed
 
@@ -703,6 +704,7 @@ class Shooter(ShooterBase):
         )
 
     def close(self):
+        clock.unschedule(self.smoke)
         self.level.shooters.discard(self)
         self.level.scene.skulls.emit(
             1,
@@ -711,7 +713,6 @@ class Shooter(ShooterBase):
             spin_spread=1,
             size=8,
         )
-        clock.unschedule(self.smoke)
         super().close()
 
     def make_shot(self):
@@ -743,13 +744,7 @@ class Spawner(ShooterBase):
     def __init__(self, level, corner):
         super().__init__(level)
         scene = level.scene
-        self.shape = scene.layers[Layers.UPPER_ENTITIES].add_star(
-            points=3,
-            outer_radius=self.radius,
-            inner_radius=self.radius / 3,
-            fill=False,
-            color=(0.8, 0.8, 0.15, 1),
-        )
+        self.shape = scene.layers[Layers.UPPER_ENTITIES].add_sprite('spawner')
 
         # start some distance away from our corner
         screen_center = Vector2D(scene.width / 2, scene.height / 2)
@@ -764,6 +759,18 @@ class Spawner(ShooterBase):
         self.pos = self.shape.pos = corner + delta
 
         self._next_shot_time()
+        self.t = random.uniform(0, 6)
+        clock.each_tick(self.bob)
+
+    def bob(self, dt):
+        self.t += dt
+        self.shape.scale = 1 + 0.1 * np.sin(self.t * 4)
+        delta = self.level.player.pos - self.pos
+        self.shape.angle = delta.angle()
+
+    def close(self):
+        clock.unschedule(self.bob)
+        super().close()
 
     def make_shot(self):
         if len(self.level.shooters) >= 10:
