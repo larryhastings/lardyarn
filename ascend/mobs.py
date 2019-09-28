@@ -705,8 +705,8 @@ class Shooter(ShooterBase):
         )
 
     def delete(self):
-        clock.unschedule(self.smoke)
         self.level.shooters.discard(self)
+        clock.unschedule(self.smoke)
         self.level.scene.skulls.emit(
             1,
             pos=self.pos,

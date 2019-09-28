@@ -548,8 +548,6 @@ class Level:
             self.proceed_on_button_release = None
             self.game.go_to_level(level)
 
-
-
     def delete(self):
         if self.player:
             self.player.delete()
