@@ -448,8 +448,6 @@ class Level:
         assert spawner, "didn't have a spawner for level " + self.name
 
         spawner.spawn()
-        self.player.pos = Vector2D(self.trapdoor.pos)
-        self.player.shape.pos = self.player.pos
 
         print("[INFO] Fight!")
 
@@ -635,10 +633,12 @@ def generate_level(level, *, left=None, mid=None, right=None, flip=False):
     p1, p2 = sprites[0][1], sprites[2][1]
     if flip:
         p1, p2 = p2, p1
-    level.trapdoor = scene.layers[Layers.FLOOR].add_sprite(
+    trapdoor = scene.layers[Layers.FLOOR].add_sprite(
         'trapdoor',
         pos=p1
     )
+    level.player.pos = Vector2D(trapdoor.pos)
+    level.player.shape.pos = level.player.pos
     scene.layers[Layers.FLOOR].add_sprite(
         'stairs',
         pos=p2
