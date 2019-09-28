@@ -139,6 +139,57 @@ class BombPowerup:
         self.level.objects.remove(self)
 
 
+class Gib:
+    @classmethod
+    def shower(cls, level, pos, num=8, vel=Vector2D()):
+        for _ in range(num):
+            cls(level, pos, vel)
+
+    def __init__(self, level: 'ascend.level.Level', pos, vel=Vector2D()):
+        self.level = level
+        self.level.objects.append(self)
+        self.scene = level.scene
+        self.sprite = self.scene.layers[Layers.LOWER_EFFECTS].add_sprite(
+            'smoke',
+            pos=pos,
+            color='#800000ff',
+        )
+        self.sprite.scale = 0.2
+        self.vel = Vector2D(
+            np.random.normal(0, 100),
+            np.random.normal(0, 100),
+        ) + vel
+        self.age = 0
+
+    BLOOD_RATE = 0.1
+
+    def update(self, dt):
+        self.age += dt
+        self.vel *= 0.2 ** dt
+        self.sprite.pos += self.vel * dt
+
+        self.sprite.scale -= 0.2 * dt
+
+        if self.age > 1:
+            self.delete()
+            return
+
+        self.scene.smoke.emit(
+            num=np.random.poisson(self.vel.magnitude * dt * self.BLOOD_RATE),
+            pos=self.sprite.pos,
+            vel_spread=30,
+            spin_spread=1,
+            size=4,
+            size_spread=3,
+            color='#cc0000ff'
+        )
+
+    def delete(self):
+        self.level.objects.remove(self)
+        self.sprite.delete()
+        self.sprite = None
+
+
 class Skeleton:
     radius = 12
 
@@ -151,7 +202,6 @@ class Skeleton:
             pos=pos,
             angle=angle
         )
-        self.body_animate = None
         self.head = scene.layers[Layers.ENTITIES].add_sprite(
             'skeleton-head',
             pos=pos,
@@ -198,8 +248,6 @@ class Skeleton:
         clock.unschedule(self.update)
         self.head.delete()
         self.body.delete()
-        if self.body_animate:
-            self.body_animate.stop()
 
     def die(self, vel=(0, 0)):
         self.delete()
@@ -402,8 +450,8 @@ class Stalker(BadGuy):
         self.shape = Skeleton(self.level, Vector2D(0, 0))
 
     def delete(self):
-        super().delete()
         self.shape.die(Vector2D())
+        super().delete()
 
     def update(self, dt):
         if self.dead:
@@ -773,8 +821,12 @@ class Spawner(ShooterBase):
         self.shape.angle = delta.angle()
 
     def delete(self):
+        Gib.shower(self.level, self.pos, 12)
         clock.unschedule(self.bob)
         super().delete()
+
+    def die(self, v):
+        self.close()
 
     def make_shot(self):
         if len(self.level.shooters) >= 10:
@@ -824,7 +876,8 @@ class Prince(Entity):
             self.hearts.delete()
             self.shape = None
 
-    def die(self):
+    def die(self, v=None):
+        Gib.shower(self.level, self.pos)
         self.level.game.lose("You killed the prince!")
         self.delete()
 
