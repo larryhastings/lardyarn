@@ -521,6 +521,9 @@ class Player:
             self.zone_flash_until = 0
             self.zone.color = self.normal_zone_color
 
+        if self.dead:
+            return
+
         acceleration = Vector2D()
         for key, vector in control.movement_keys.items():
             if keyboard[key]:

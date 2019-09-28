@@ -7,7 +7,7 @@ import pkgutil
 from itertools import product
 from pygame import Rect
 
-from wasabi2d import Vector2
+from wasabi2d import Vector2, animate, sounds
 from pygame import joystick
 
 from .knight import Knight, Bomb, Player
@@ -44,24 +44,24 @@ def line_segment_intersects_circle(start, along, center, radius):
 
 
 class Level:
-    def __init__(self, game, gametype):
+    def __init__(self, game, number):
         self.game = game
         self.scene = game.scene
 
         self.pcs = []
         self.objects = []
 
-        if gametype == "dan":
-            self.mobs = []
-            self.controllers = []
-            self.update = self.dan_update
-            self.dan_new_level()
-        else:
-            self.player = None
-            self.enemies = []
-            self.walls = []
-            self.update = self.larry_update
-            self.larry_new_level()
+        self.player = None
+        self.enemies = []
+        self.walls = []
+        self.update = self.larry_update
+        self.number = number
+        self.proceed_on_button_release = False
+        if number == "title screen":
+            self.populate = self.title_screen
+
+    def __repr__(self):
+        return f"<Level {self.number!r}>"
 
     def dan_new_level(self):
         self.create_players()
@@ -246,7 +246,20 @@ class Level:
         if not self.player:
             return
 
-        self.player.update(dt, keyboard)
+        if self.game.paused:
+            # debounce button
+            new_game_button_pressed = keyboard.space
+            if not new_game_button_pressed and control.stick:
+                new_game_button_pressed = control.stick.get_button(0)
+
+            if new_game_button_pressed:
+                self.proceed_on_button_release = True
+            elif self.proceed_on_button_release:
+                self.game.new()
+            return
+
+        if self.player:
+            self.player.update(dt, keyboard)
 
         if not self.enemies:
             self.player.on_win()
@@ -256,7 +269,7 @@ class Level:
             for enemy in self.enemies:
                 enemy.update(dt)
 
-    def larry_new_level(self):
+    def populate(self):
         print("[INFO] Spawning player and enemies...")
 
         scene = self.scene
@@ -293,9 +306,85 @@ class Level:
 
         print("[INFO] Fight!")
 
+    def show_message(self, text):
+        scene = self.scene
+        screen_center = Vector2D(scene.width, scene.height) * 0.5
+        fill = scene.layers[Layers.TEXTBG].add_rect(
+            width=scene.width + 100,
+            height=scene.height + 100,
+            pos=screen_center,
+            color=(0, 0, 0, 0),
+        )
+        animate(fill, duration=0.1, color=(0, 0, 0, 0.33))
+
+        lines = text.count('\n')
+        fontsize = 48
+        pos = screen_center - Vector2D(0, 1.3 * fontsize) * (lines - 0.5) * 0.5
+        scene.layers[Layers.TEXT].add_label(
+            text=text,
+            fontsize=fontsize,
+            align="center",
+            pos=pos,
+            font='magic_medieval',
+        )
+
+    def win(self):
+        or_button_0 = "or button 0 " if control.stick else ""
+        self.show_message(
+            "A WINNER IS YOU!\n"
+            f"Press Space {or_button_0}to continue\n"
+            "Press Escape to quit"
+        )
+        sounds.game_won.play()
+
+    def lose(self, text):
+        or_button_0 = "or button 0 " if control.stick else ""
+        self.show_message(
+            f"{text}\n"
+            "GAME OVER\n"
+            f"Press Space {or_button_0}to continue\n"
+            "Press Escape to quit"
+        )
+        sounds.hit.play()
+
+    def title_screen(self):
+        generate_level(self)
+        or_button_0 = "or button 0 " if control.stick else ""
+        self.show_message(
+            f"ROLLER KNIGHT\n"
+            "\n"
+            f"Press Space {or_button_0}for New Game\n"
+            # "Press 1 or Button 4 for Endless Challenge\n"
+            "Press Escape to... escape\n"
+            "\n"
+            "Copyright 2019 by Darn Yard Lad\n"
+            )
+        self.update = self.title_screen_update
+        self.populate = self.title_screen_populate
+
+    def title_screen_populate(self):
+        pass
+
+
+    def title_screen_update(self, t, dt, keyboard):
+        # debounce button
+        new_game_button_pressed = keyboard.space
+        if not new_game_button_pressed and control.stick:
+            new_game_button_pressed = control.stick.get_button(0)
+
+        if new_game_button_pressed:
+            self.proceed_on_button_release = True
+        elif self.proceed_on_button_release:
+            level = Level(self.game, 1)
+            self.game.go_to_level(level)
+
+
+
     def delete(self):
-        self.player.close()
-        self.player = None
+        if self.player:
+            self.player.close()
+            self.player = None
+
         self.pcs = []
 
         for enemy in self.enemies:
@@ -349,3 +438,4 @@ def generate_level(level):
     scene.layers[Layers.FLOOR].add_sprite('trapdoor', pos=sprites[0][1])
     scene.layers[Layers.FLOOR].add_sprite('stairs', pos=sprites[2][1])
     level.build_spatial_hash()
+

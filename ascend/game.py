@@ -111,6 +111,11 @@ class Game:
 
     def new(self):
         print("[INFO] New game.")
+        level = Level(self, "title screen")
+        return self.go_to_level(level)
+
+    def go_to_level(self, level):
+        print(f"[INFO] Switch to level {level}.")
 
         self.delete()
 
@@ -118,9 +123,8 @@ class Game:
 
         self.init_scene()
 
-        self.level = Level(self, self.gametype)
-
-        return self.level
+        self.level = level
+        level.populate()
 
     def delete(self):
         self.clear_scene()
@@ -138,58 +142,14 @@ class Game:
         if keyboard.escape:
             sys.exit("[INFO] Quittin' time!")
 
-        if self.paused:
-            if control.stick:
-                for button in (0, 1, 2, 3):
-                    if control.stick.get_button(button):
-                        self.new()
-                        break
-            return
-
         if self.level:
-            if not hasattr(self.level, "update"):
-                print("LEVEL", self.level, type(self.level))
-                print("DIR LEVEL", dir(self.level))
             self.level.update(t, dt, keyboard)
 
-    def show_message(self, text):
-        scene = self.level.scene
-        screen_center = Vector2D(scene.width, scene.height) * 0.5
-        fill = scene.layers[Layers.TEXTBG].add_rect(
-            width=scene.width + 100,
-            height=scene.height + 100,
-            pos=screen_center,
-            color=(0, 0, 0, 0),
-        )
-        animate(fill, duration=0.1, color=(0, 0, 0, 0.33))
-
-        lines = text.count('\n')
-        fontsize = 48
-        pos = screen_center - Vector2D(0, 1.3 * fontsize) * (lines - 0.5) * 0.5
-        scene.layers[Layers.TEXT].add_label(
-            text=text,
-            fontsize=fontsize,
-            align="center",
-            pos=pos,
-            font='magic_medieval',
-        )
 
     def win(self):
         self.paused = True
-        self.show_message(
-            "A WINNER IS YOU!\n"
-            "Press Space or joystick button to play again\n"
-            "Press Escape to quit"
-        )
-        sounds.game_won.play()
+        self.level.win()
 
     def lose(self, text):
         self.paused = True
-
-        self.show_message(
-            f"{text}\n"
-            "GAME OVER\n"
-            "Press Space or joystick button to play again\n"
-            "Press Escape to quit"
-        )
-        sounds.hit.play()
+        self.level.lose(text)

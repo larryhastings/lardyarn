@@ -60,13 +60,12 @@ assert len(KeyboardController.KEY_MAP) == len(JoyController.BUTTON_MAP), \
 
 movement_keys = {}
 stick = None
-use_left_stick = use_face_buttons = use_hat = False
+use_left_stick = use_hat = False
 
 def init_controls(settings):
     global movement_keys
     global stick
     global use_left_stick
-    global use_face_buttons
     global use_hat
 
     movement_keys[keys.W] = movement_keys[keys.UP]    = Vector2D(+0, -1)
@@ -101,7 +100,7 @@ def init_controls(settings):
     else:
         print(f"[WARN] Insufficient joysticks!")
         print(f"[WARN] We want joystick #{which_joystick}, but only {joystick.get_count()} joysticks detected.")
-        use_left_stick = use_face_buttons = use_hat = False
+        use_left_stick = use_hat = False
         stick = None
 
     print("[INFO] use left stick?", use_left_stick)
