@@ -267,9 +267,7 @@ class Level:
             elif self.proceed_on_button_release:
                 self.proceed_on_button_release = False
                 if self.continue_level:
-                    layers = self.scene.layers
-                    for layer in (Layers.TEXT, Layers.TEXTBG):
-                        layers[layer].clear()
+                    self.erase_message()
                     self.delete_player()
                     self.new_player()
                     self.continue_level = False
@@ -304,8 +302,6 @@ class Level:
         walls = self.walls
         assert not (enemies or walls)
 
-        generate_level(self)
-
         class LevelSpawner:
             def __init__(self, level, *,
                 slow_stalkers = 0,
@@ -331,6 +327,12 @@ class Level:
             def spawn(self):
                 enemies = self.level.enemies
                 level = self.level
+
+                mid = None
+                if self.princes:
+                    mid = 1
+
+                generate_level(self.level, mid=mid)
 
                 for i in range(self.slow_stalkers):
                     enemies.append(Stalker(level, fast=False))
@@ -367,14 +369,6 @@ class Level:
 
                     three_quarters_across = Vector2D(scene.width * 3 / 4, scene.height / 2)
                     enemies.append(Prince(level, three_quarters_across))
-
-                    scene.layers[Layers.TEXT].add_label(
-                        text="You've found the prince!  Go to him!",
-                        fontsize=48,
-                        align="center",
-                        pos=Vector2D(scene.width / 2, (scene.height * 3 / 4)),
-                        font='magic_medieval',
-                    )
 
                 level.next = self.next
 
@@ -447,6 +441,7 @@ class Level:
             level_spawners['prince'] = level_spawners['7']
             spawner = level_spawners.get(self.name)
         assert spawner, "didn't have a spawner for level " + self.name
+
         spawner.spawn()
 
         print("[INFO] Fight!")
@@ -457,8 +452,14 @@ class Level:
         self.game.go_to_level(next)
 
 
+    def erase_message(self):
+        layers = self.scene.layers
+        for layer in (Layers.TEXT, Layers.TEXTBG):
+            layers[layer].clear()
+
     def show_message(self, text):
         scene = self.scene
+        self.erase_message()
         screen_center = Vector2D(scene.width, scene.height) * 0.5
         fill = scene.layers[Layers.TEXTBG].add_rect(
             width=scene.width + 100,
@@ -520,7 +521,7 @@ class Level:
         sounds.hit.play()
 
     def title_screen(self):
-        generate_level(self)
+        generate_level(self, mid=1)
         or_button_1 = "or button 1 " if control.stick else ""
         or_button_4 = "or button 4 " if control.stick else ""
         self.show_message(
@@ -568,15 +569,15 @@ class Level:
 
         for enemy in tuple(self.enemies):
             enemy.delete()
-        assert not self.enemies
+        assert not self.enemies, "enemies should be empty but isn't: " + repr(self.enemies)
 
         for o in tuple(self.objects):
             o.delete()
-        assert not self.objects
+        assert not self.objects, "self.objects should be empty but isn't: " + repr(self.objects)
 
         for wall in tuple(self.walls):
             wall.delete()
-        assert not self.walls
+        assert not self.walls, "self.walls should be empty but isn't: " + repr(self.walls)
 
 
 # Components

@@ -809,7 +809,16 @@ class Prince(Entity):
         self.hearts.add_color_stop(0.2, (1, 1, 1, 1))
         self.hearts.add_color_stop(1, (1, 1, 1, 1))
         self.hearts.add_color_stop(3, (1, 1, 1, 0))
-        self.level.objects.append(self)
+
+        scene = self.level.scene
+        scene.layers[Layers.TEXT].add_label(
+            text="You've found the prince!  Go to him!",
+            fontsize=48,
+            align="center",
+            pos=Vector2D(scene.width / 2, (scene.height * 3 / 4)),
+            font='magic_medieval',
+        )
+
 
     def on_collide_player(self):
         self.level.game.win()
@@ -817,16 +826,21 @@ class Prince(Entity):
     def on_collide_zone(self):
         self.die()
 
-    def delete(self):
-        self.level.objects.remove(self)
+    def delete_shape(self):
         if self.shape:
             self.shape.delete()
             self.hearts.delete()
             self.shape = None
 
+    def delete(self):
+        self.level.enemies.remove(self)
+        self.delete_shape()
+
     def die(self):
+        self.game.lives=0
         self.level.game.lose("You killed the prince!")
-        self.delete()
+        # don't call delete, game state thinks we won the level
+        self.delete_shape()
 
     def move_delta(self, d):
         pass
