@@ -383,7 +383,8 @@ class Level:
                     shooters=0 if level_number < 2 else n(0, 2),
                     blobs=0 if level_number < 3 else random.randint(0, 1),
                     spawners=0 if level_number < 5 else random.randint(0, 2),
-                    next="Endless " + str(level_number + 1)
+                    next="Endless " + str(level_number + 1),
+                    flip=level_number % 2,
                     )
         else:
             level_spawners = {
