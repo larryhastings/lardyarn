@@ -280,25 +280,6 @@ class BadGuy:
     def move_to(self, v):
         # print(f"{time:8}", self, "move to", v)
         self.shape.pos = self.pos = v
-        player = self.level.player
-
-        collision = player.compute_collision_with_bad_guy(self)
-
-        if collision == CollisionType.ZONE:
-            player.on_collision_zone(self)
-            self.on_collide_zone()
-        elif collision == CollisionType.PLAYER:
-            player.on_collision_body(self)
-            self.on_collide_player()
-        else:
-            penetration_vector = self.level.detect_wall_collisions(self)
-            if penetration_vector:
-                if self.die_on_any_collision:
-                    self.close()
-                    return
-                self.pos -= penetration_vector
-                self.shape.pos = self.pos
-
 
     def move_delta(self, delta):
         v = self.pos + delta
@@ -328,6 +309,8 @@ class BadGuy:
 
     def push_away_from_entity(self, entity):
         delta = self.pos - entity.pos
+        if not delta.magnitude_squared:
+            delta = Vector2D(0, 1)
         delta2 = delta.scaled(self.body_collision_distance * 1.2)
         # print(f"push away self.pos {self.pos} player.pos {player.pos} delta {delta} delta2 {delta2}")
         self.move_to(entity.pos + delta2)
@@ -379,13 +362,13 @@ class Stalker(BadGuy):
 
 class Blobby:
     def __init__(self, scene, pos=Vector2D(), radius=20):
-        self.radius = radius
         self.scene = scene
         layer = scene.layers[Layers.ENTITIES]
         self.shape = layer.add_sprite('blob')
         self.shape.angle = random.uniform(-1, 1)
+        self.radius = radius
 
-        self.bounciness = Vector2D(1.1, 0.9) * (radius / 20)
+        self.bounciness = Vector2D(1.1, 0.9)
         self.shape.pos = pos
         self.squish_x = random.choice([True, False])
         self.bounce()
@@ -399,9 +382,17 @@ class Blobby:
     def pos(self, v):
         self.shape.pos = v
 
+    @property
+    def radius(self):
+        return self._radius
+
+    @radius.setter
+    def radius(self, v):
+        self._radius = v
+
     def bounce(self):
         self.squish_x = not self.squish_x
-        x, y = self.bounciness
+        x, y = self.bounciness * (self._radius / 20)
         if self.squish_x:
             x, y = y, x
         self.anim = animate(
@@ -467,29 +458,37 @@ class Splitter(BadGuy):
 
 
 class Bloblet(BadGuy):
-    radius = 15
+    _radius = 15
 
     def __init__(self, level, leader):
         super().__init__(level)
+        self.shape = Blobby(level.scene, radius=self._radius)
+        self.radius = 15
 
         if leader:
             self.init_follower(leader)
         else:
             self.init_leader()
 
-        self.shape = level.scene.layers[Layers.ENTITIES].add_sprite(
-            'blob',
-        )
         self.random_placement()
+
+    @property
+    def radius(self):
+        return self._radius
+
+    @radius.setter
+    def radius(self, v):
+        self.shape.radius = self._radius = v
 
     def init_leader(self):
         self.leader = None
-        self.speed = 0.6
+        animate(self, radius=30)
+        self.speed = 1
         self.blobs = set((self,))
 
     def init_follower(self, leader):
         self.leader = leader
-        self.speed = 2
+        self.speed = 1
         leader.blobs.add(self)
 
     def close(self):
@@ -525,19 +524,23 @@ class Bloblet(BadGuy):
             # if self.leader is None, then I'm the leader,
             # I always move!
             # print("LEADER BLOB MOVING TOWARDS PLAYER", self)
+            before = self.pos
             self.move_towards_player()
+            move = self.pos - before
+            for b in self.blobs:
+                if b is self:
+                    continue
+                dist = 1 / (0.3 + (self.pos - b.pos).magnitude / 300)
+                b.pos += move * dist
+
             return
 
         # only move towards the leader if I'm not
         # touching any other blobs
-        for blob in self.leader.blobs:
-            if blob == self:
-                continue
-            if entity_collision(self, blob):
-                self.push_away_from_entity(blob)
-                return
-
-        self.move_towards_pos(self.leader.pos)
+        self.move_towards_pos(
+            self.leader.pos * 0.9 +
+            self.level.player.pos * 0.1
+        )
 
 
 def Blob(level, count=30):
