@@ -265,6 +265,7 @@ class Level:
             if new_game_button_pressed:
                 self.proceed_on_button_release = True
             elif self.proceed_on_button_release:
+                self.proceed_on_button_release = False
                 if self.continue_level:
                     layers = self.scene.layers
                     for layer in (Layers.TEXT, Layers.TEXTBG):
@@ -513,12 +514,13 @@ class Level:
         or_button_4 = "or button 4 " if control.stick else ""
         self.show_message(
             f"Roller Knight\n"
+            f"by Team Darn Yard Lad\n"
             "\n"
             f"Press Space {or_button_1}for New Game\n"
             f"Press 1 or {or_button_4}for an Endless Challenge\n"
             "Press Escape to... escape\n"
             "\n"
-            "Copyright 2019 by Darn Yard Lad\n"
+            "Copyright 2019 by Dan Pope & Larry Hastings\n"
             )
         self.update = self.title_screen_update
         self.populate = self.title_screen_populate
@@ -543,6 +545,7 @@ class Level:
         elif self.proceed_on_button_release:
             self.game.reset_game()
             level = Level(self.game, self.proceed_on_button_release)
+            self.proceed_on_button_release = None
             self.game.go_to_level(level)
 
 
