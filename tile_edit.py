@@ -2,9 +2,9 @@ import sys
 import numpy as np
 import atexit
 import json
-from wasabi2d import Scene, event, run, keys, Vector2
+from wasabi2d import Scene, event, run, keys, Vector2, mouse
 from ascend.triangle_intersect import polygon_collision
-from pygame import joystick
+from pygame import joystick, Rect
 from scipy.spatial import ConvexHull
 
 
@@ -38,7 +38,7 @@ class Poly:
 
     def _add_handle(self, pos):
         self.handles.append(
-            scene.layers[1].add_rect(4, 4, pos=pos)
+            scene.layers[1].add_rect(6, 6, pos=pos)
         )
 
     def reduce(self):
@@ -103,7 +103,7 @@ def load():
                 poly.add_point(point)
             polys.append(poly)
         if polys:
-            current_poly = polys[-1]
+            set_current_poly(polys[-1])
             return
     except IOError:
         pass
@@ -111,14 +111,9 @@ def load():
     polys = [current_poly]
 
 
-current_poly = None
-polys = None
-load()
-
-
 def set_current_poly(p):
     global current_poly
-    if len(current_poly) < 3:
+    if current_poly is not None and len(current_poly) < 3:
         current_poly.delete()
     current_poly = p
     for poly in polys:
@@ -128,20 +123,31 @@ def set_current_poly(p):
 
 
 @event
-def on_mouse_down(pos):
+def on_mouse_down(pos, button):
     global current_poly
     global current_point
-    if current_poly and len(current_poly) < 3:
-        current_poly.add_point(pos)
-        current_point = len(current_poly) - 1
+
+    if button == mouse.RIGHT:
+        p = Poly()
+        polys.append(p)
+        set_current_poly(p)
         return
+
+    if current_poly is not None:
+        r = Rect(0, 0, 6, 6)
+        for i, handle in enumerate(current_poly.handles):
+            r.center = handle.pos
+            if r.collidepoint(pos):
+                current_point = i
+                return
+
     for p in polys:
-        if p.contains(pos):
+        if len(p) > 2 and p.contains(pos):
             set_current_poly(p)
             current_point = None
             return
     else:
-        if current_poly:
+        if current_poly is not None:
             current_poly.add_point(pos)
             current_point = len(current_poly) - 1
 
@@ -149,7 +155,7 @@ def on_mouse_down(pos):
 @event
 def on_mouse_up(pos):
     global current_point
-    if current_poly:
+    if current_poly is not None:
         current_poly.reduce()
         current_point = None
 
@@ -159,12 +165,13 @@ def on_mouse_move(pos, buttons):
     if not buttons:
         return
 
-    if current_point:
+    if current_poly is not None and current_point is not None:
         current_poly.move_point(current_point, pos)
 
 
 @event
 def on_key_down(key):
+    global current_poly
     if key == keys.RETURN:
         p = Poly()
         polys.append(p)
@@ -173,6 +180,11 @@ def on_key_down(key):
         idx = polys.index(current_poly)
         idx = (idx + 1) % len(polys)
         set_current_poly(polys[idx])
+    elif key == keys.DELETE:
+        if current_poly is not None:
+            polys.remove(current_poly)
+            current_poly.delete()
+            current_poly = None
 
 
 @atexit.register
@@ -187,5 +199,9 @@ def on_exit():
         json.dump(pts, f)
     print("Wrote", datafile)
 
+
+current_poly = None
+polys = None
+load()
 
 run()
