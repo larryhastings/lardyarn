@@ -376,7 +376,8 @@ class BadGuy(Entity):
 
     min_random_distance = 150
     min_random_distance_squared = min_random_distance ** 2
-    random_placement_inset = 20
+    random_placement_inset = 60
+
     def random_placement(self):
         level = self.level
         while True:
