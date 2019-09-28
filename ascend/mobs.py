@@ -117,11 +117,13 @@ class BombPowerup:
 
     def blink_on(self):
         self.collectable = True
-        self.sprite.color = (2, 2, 2, 1)
+        if self.sprite:
+            self.sprite.color = (2, 2, 2, 1)
         clock.schedule(self.blink_off, 0.1)
 
     def blink_off(self):
-        self.sprite.color = 'white'
+        if self.sprite:
+            self.sprite.color = 'white'
         clock.schedule(self.blink_on, 0.5)
 
     def update(self, dt):
