@@ -71,8 +71,9 @@ class Level:
             )
         else:
             self.controllers.append(
-                KeyboardController(player1)
+                KeyboardController(player1.update)
             )
+        self.controllers.append(player1)
 
         if joystick.get_count() > 1:
             print("2-player game")
@@ -82,6 +83,7 @@ class Level:
             self.controllers.append(
                 JoyController(player2, joystick.Joystick(1))
             )
+            self.controllers.append(player2)
         else:
             print("1-player game")
 
@@ -106,7 +108,7 @@ class Level:
 
     def dan_update(self, t, dt, keyboard):
         for controller in self.controllers:
-            controller.update()
+            controller.update(dt)
 
         for pc in self.pcs:
             pc.update(dt)

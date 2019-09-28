@@ -23,7 +23,7 @@ class JoyController:
         self.stick.init()
         self.buttons = range(self.stick.get_numbuttons())
 
-    def update(self):
+    def update(self, dt):
         self.pc.accelerate((
             self.stick.get_axis(0),
             self.stick.get_axis(1),
@@ -38,7 +38,7 @@ class KeyboardController:
 
     KEY_MAP = [keys.Z, keys.X, keys.C, keys.V]
 
-    def update(self):
+    def update(self, dt):
         ax = ay = 0
         if keyboard.left:
             ax = -1
