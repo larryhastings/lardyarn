@@ -59,6 +59,7 @@ class Level:
         self.name = name
         self.next = None
         self.proceed_on_button_release = False
+        self.continue_level = False
         if name == "title screen":
             self.populate = self.title_screen
 
@@ -244,6 +245,13 @@ class Level:
         self.player = Player(self)
         self.pcs.append(self.player)
 
+    def delete_player(self):
+        if self.player in self.pcs:
+            self.pcs.remove(self.player)
+        self.player.delete()
+        self.player = None
+
+
     def larry_update(self, t, dt, keyboard):
         if not self.player:
             return
@@ -257,7 +265,16 @@ class Level:
             if new_game_button_pressed:
                 self.proceed_on_button_release = True
             elif self.proceed_on_button_release:
-                self.next_level()
+                if self.continue_level:
+                    layers = self.scene.layers
+                    for layer in (Layers.TEXT, Layers.TEXTBG):
+                        layers[layer].clear()
+                    self.delete_player()
+                    self.new_player()
+                    self.continue_level = False
+                    self.game.paused = False
+                else:
+                    self.next_level()
             return
 
         if self.player:
@@ -470,9 +487,21 @@ class Level:
 
     def lose(self, text):
         or_button_1 = "or button 1 " if control.stick else ""
+        game = self.game
+        if game.lives == 1:
+            game_over = f"1 Life Remaining"
+            self.continue_level = True
+            game.lives = 0
+        elif game.lives:
+            game_over = f"{game.lives} Lives Remaining"
+            self.continue_level = True
+            game.lives -= 1
+        else:
+            game_over = f"GAME OVER\n"
+            self.game.level.next = "title screen"
         self.show_message(
             f"{text}\n"
-            "GAME OVER\n"
+            f"{game_over}\n"
             f"Press Space {or_button_1}to continue\n"
             "Press Escape to quit"
         )
@@ -512,6 +541,7 @@ class Level:
         elif endless_pressed:
             self.proceed_on_button_release = "Endless 1"
         elif self.proceed_on_button_release:
+            self.game.reset_game()
             level = Level(self.game, self.proceed_on_button_release)
             self.game.go_to_level(level)
 

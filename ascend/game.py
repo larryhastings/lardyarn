@@ -31,6 +31,8 @@ class Game:
         else:
             self.new_game_level = "title screen"
 
+        self.reset_game()
+
         event(self.update)
         self.create_scene()
 
@@ -118,6 +120,9 @@ class Game:
         print("[INFO] New game.")
         level = Level(self, self.new_game_level)
         return self.go_to_level(level)
+
+    def reset_game(self):
+        self.lives = 4
 
     def go_to_level(self, level):
         print(f"[INFO] Switch to level {level}.")

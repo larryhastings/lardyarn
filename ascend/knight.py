@@ -443,12 +443,15 @@ class Player:
 
     message = None
 
+    invulnerable = None
+
     def __init__(self, level):
         self.level = level
         self.game = level.game
         scene = level.scene
         screen_center = Vector2D(scene.width / 2, scene.height / 2)
-        self.pos = Vector2D(screen_center)
+        self.starting_pos = Vector2D(screen_center)
+        self.pos = self.starting_pos
         self.shape = Knight(level)
         self.shape.knight.pos = self.pos
 
@@ -491,6 +494,17 @@ class Player:
         self.can_bomb = Lockout()
         self.can_bomb.lock(0.5)
         self.add_bomb()
+        self.start_invulnerability_timer()
+
+    def start_invulnerability_timer(self):
+        self.invulnerable = self.game.time + 1.5
+        self.shape.color = (2, 2, 2, 1)
+
+    def update_invulnerability(self):
+        if self.invulnerable:
+            if self.game.time > self.invulnerable:
+                self.invulnerable = None
+                self.shape.color = (1, 1, 1, 1)
 
     def add_bomb(self):
         hud = self.level.scene.layers[Layers.HUD]
@@ -502,8 +516,9 @@ class Player:
     def close(self):
         self.shape.delete()
         self.zone.delete()
-        for layer in (Layers.TEXT, Layers.TEXTBG):
-            self.level.scene.layers[layer].clear()
+
+    def delete(self):
+        self.close()
 
     def compute_collision_with_bad_guy(self, bad_guy):
         if self.dead:
@@ -537,6 +552,8 @@ class Player:
 
         if self.dead:
             return
+
+        self.update_invulnerability()
 
         acceleration = Vector2D()
         for key, vector in control.movement_keys.items():
@@ -668,13 +685,14 @@ class Player:
         """
         if isinstance(other, Prince):
             return
+        if self.invulnerable:
+            return
         self.on_death(other)
 
     def on_death(self, other):
         print(f"[WARN] Player hit {other}!  Game over!")
         self.dead = True
         self.game.lose("YOU DIED")
-        self.game.level.next = "title screen"
 
     def on_win(self):
         print("[INFO] Player wins!  Game over!")
