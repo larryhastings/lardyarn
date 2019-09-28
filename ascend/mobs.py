@@ -10,9 +10,6 @@ class MagicMissile:
     SPEED = 200
     SPIN = 0.5
 
-    EXPLODE_TIME = 1
-    BLINK_TIME = 2.3
-
     def __init__(self, world, pos, vel):
         self.world = world
         self.scene = world.scene
@@ -25,15 +22,15 @@ class MagicMissile:
         self.sprite.scale = 0.3
         self.age = 0
 
+    @property
+    def pos(self):
+        return self.sprite.pos
+
+    @pos.setter
+    def pos(self, v):
+        self.sprite.pos = v
+
     def update(self, dt):
-        self.sprite.pos += self.vel * dt
-        self.sprite.angle += self.SPIN * dt
-
-        self.age += dt
-        if self.age > self.EXPLODE_TIME:
-            self.hit()
-            return
-
         self.scene.smoke.emit(
             num=np.random.poisson(self.SMOKE_RATE * dt),
             pos=self.sprite.pos,
@@ -78,6 +75,21 @@ class MagicMissile:
         self.delete()
 
 
+class TimedMagicMissile(MagicMissile):
+    EXPLODE_TIME = 1
+
+    def update(self, dt):
+        super().update(dt)
+
+        self.sprite.pos += self.vel * dt
+        self.sprite.angle += self.SPIN * dt
+
+        self.age += dt
+        if self.age > self.EXPLODE_TIME:
+            self.hit()
+            return
+
+
 class Skeleton:
     radius = 12
 
@@ -97,7 +109,7 @@ class Skeleton:
             angle=angle
         )
 
-        self.target = random.choice(world.pcs)
+        self.target = random.choice(world.pcs) if world.pcs else None
         self.bob = 1.0
         self.gait_speed = random.uniform(0.3, 0.5)
         self.gait_step = random.uniform(1.07, 1.2)
@@ -170,5 +182,9 @@ class Mage(Skeleton):
         aim = Vector2(*self.target.pos) - pos
 
         self.world.objects.append(
-            MagicMissile(self.world, pos, aim.normalize() * MagicMissile.SPEED)
+            TimedMagicMissile(
+                self.world,
+                pos,
+                aim.normalize() * MagicMissile.SPEED
+            )
         )

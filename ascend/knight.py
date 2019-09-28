@@ -185,26 +185,27 @@ class Knight:
             sprite=sword_sprite,
             knight=self,
             radius=25,
-            angle=1,
+            angle=0,
         )
         self.sword.attack = False
+        self.v = Vector2()
 
         self.pos = Vector2(scene.width, scene.height) * 0.5
         self.last_pos = None
-        self.v = Vector2()
-        self.accel = Vector2()  # direction of the acceleration
 
         # The distance the knight has travelled; this is used in
         # calculating his gait
         self.step = 0
 
-    # Acceleration of the knight in pixels/s^2
-    ACCELERATION = 650
-    # Rate the knight is slowed, fraction of speed/s
-    DRAG = 0.2
+    @property
+    def pos(self):
+        return self.knight.pos
 
-    # Rate of turn, radians / s at full acceleration
-    TURN = 10
+    @pos.setter
+    def pos(self, v):
+        self.head.pos = self.knight.pos = v
+        self.shield.update()
+        self.sword.update()
 
     @property
     def angle(self):
@@ -216,62 +217,29 @@ class Knight:
 
     def update(self, dt):
         """Update the knight this frame."""
-        self.v *= self.DRAG ** dt   # drag
-
-        if self.accel:
-            # New acceleration this frame
-            self.v += self.ACCELERATION * self.accel * dt
-
-        da, accel_angle = self.accel.as_polar()
-        accel_angle = math.radians(accel_angle)
-
-        dv = self.v.magnitude()
-
-        delta = angle_diff(accel_angle, self.knight.angle)
-        if delta < 0:
-            self.knight.angle += max(dt * da * -self.TURN, delta)
-        else:
-            self.knight.angle += min(dt * da * self.TURN, delta)
-
-        if da < 0.1:
-            self.head.angle = self.knight.angle
-        else:
-            self.head.angle = accel_angle
-
-        self.step += dv
-
-        # Scale the knight to simulate gait
-        bob = 1.1 + 0.1 * np.sin(self.step / 500)
-        self.knight.scale = self.head.scale = bob
-
-        # Keep within the play area
-        sz = Vector2(self.radius, self.radius)
-        self.pos = np.clip(
-            self.pos + self.v * dt,
-            sz,
-            Vector2(self.scene.width, self.scene.height) - sz
-        )
-
-        self.head.pos = self.knight.pos = self.pos
-        self.shield.update()
-        self.sword.update()
-        self.accel *= 0.0
 
         if self.last_pos:
             displacement = Vector2(*self.pos - self.last_pos)
-            num = np.random.poisson(displacement.length() * self.SMOKE_RATE)
+            distance = displacement.length()
+            num = np.random.poisson(distance * self.SMOKE_RATE)
             if num:
                 stern = self.pos - displacement.normalize() * 10
                 self.scene.smoke.emit(
                     num=num,
                     pos=stern,
                     pos_spread=2,
-                    vel=self.v * 0.3,
+                    vel=displacement * 0.3,
                     spin_spread=1,
                     size=7,
                     angle=self.knight.angle,
                     angle_spread=3,
                 )
+
+            self.step += distance
+
+            # Scale the knight to simulate gait
+            bob = 1.1 + 0.1 * np.sin(self.step / 500)
+            self.knight.scale = self.head.scale = bob
         self.last_pos = Vector2(*self.pos)
 
     def throw_bomb(self):
@@ -287,6 +255,7 @@ class Knight:
 
     def delete(self):
         """Remove the knight from the scene."""
+        self.head.delete()
         self.knight.delete()
         self.shield.delete()
         self.sword.delete()
@@ -299,6 +268,20 @@ class KnightController:
     can_act: Lockout = field(default_factory=Lockout)
     can_move: Lockout = field(default_factory=Lockout)
 
+    # Acceleration of the knight in pixels/s^2
+    ACCELERATION = 650
+    # Rate the knight is slowed, fraction of speed/s
+    DRAG = 0.2
+
+    # Rate of turn, radians / s at full acceleration
+    TURN = 10
+
+    def __post_init__(self):
+        self.v = Vector2()
+        self.accel = Vector2()  # direction of the acceleration
+
+        clock.each_tick(self.update)
+
     @property
     def sword(self):
         return self.knight.sword
@@ -309,14 +292,14 @@ class KnightController:
 
     def accelerate(self, v):
         if self.can_move:
-            self.knight.accel += Vector2(v)
-            if self.knight.accel.length_squared() > 1:
-                self.knight.accel.normalize_ip()
+            self.accel += Vector2(v)
+            if self.accel.length_squared() > 1:
+                self.accel.normalize_ip()
         else:
             v = Vector2(v)
-            if self.knight.v and v:
-                side = self.knight.v.normalize().rotate(90)
-                self.knight.accel += 0.3 * v * abs(side.dot(v.normalize()))
+            if self.v and v:
+                side = self.v.normalize().rotate(90)
+                self.accel += 0.3 * v * abs(side.dot(v.normalize()))
 
     def set_inputs(self, inputs):
         """Pass information from the controller."""
@@ -393,3 +376,36 @@ class KnightController:
         """Return the knight to his rest pose."""
         animate(self.shield, duration=0.3, angle=-1, radius=12)
         animate(self.sword, 'accel_decel', duration=0.3, angle=1, radius=25)
+
+    def update(self, dt):
+        self.v *= self.DRAG ** dt   # drag
+
+        if self.accel:
+            # New acceleration this frame
+            self.v += self.ACCELERATION * self.accel * dt
+
+        da, accel_angle = self.accel.as_polar()
+        accel_angle = math.radians(accel_angle)
+
+        delta = angle_diff(accel_angle, self.knight.angle)
+        if delta < 0:
+            self.knight.angle += max(dt * da * -self.TURN, delta)
+        else:
+            self.knight.angle += min(dt * da * self.TURN, delta)
+
+        if da < 0.1:
+            self.knight.head.angle = self.knight.angle
+        else:
+            self.knight.head.angle = accel_angle
+
+        # Keep within the play area
+        sz = Vector2(self.knight.radius, self.knight.radius)
+        scene = self.knight.scene
+        self.knight.pos = np.clip(
+            self.knight.pos + self.v * dt,
+            sz,
+            Vector2(scene.width, scene.height) - sz
+        )
+        self.knight.v = self.v
+
+        self.accel *= 0.0
