@@ -1,6 +1,15 @@
 from .vector2d import Vector2D, Polar2D
 from .triangle_intersect import polygon_collision
 
+def entity_collision(
+    entity1,
+    entity2,
+    ):
+
+    delta = entity1.pos - entity2.pos
+    return delta.magnitude_squared < (entity1.radius_squared + entity2.radius_squared)
+
+
 
 def circle_rect_collision(
     circle_pos: Vector2D,

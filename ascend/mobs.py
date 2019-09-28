@@ -5,6 +5,7 @@ import numpy as np
 from wasabi2d import Vector2, animate, clock, sounds
 from .constants import Layers, CollisionType
 from .vector2d import Vector2D, Polar2D
+from .collision import entity_collision
 
 
 
@@ -298,12 +299,14 @@ class BadGuy:
         v = self.pos + delta
         self.move_to(v)
 
-    def move_towards_player(self):
-        player = self.level.player
-        delta = player.pos - self.pos
+    def move_towards_pos(self, pos):
+        delta = pos - self.pos
         if delta.magnitude > self.speed:
             delta = delta.scaled(self.speed)
         self.move_to(self.pos + delta)
+
+    def move_towards_player(self):
+        return self.move_towards_pos(self.level.player.pos)
 
     def move_towards_spot(self):
         player = self.level.player
@@ -313,23 +316,16 @@ class BadGuy:
         threshold = self.spot_low_watermark if self.head_to_spot else self.spot_high_watermark
         self.head_to_spot = distance_to_player > threshold
 
-        if not self.head_to_spot:
-            self.move_towards_player()
-            return
+        pos = player.pos
+        if self.head_to_spot:
+            pos += self.spot_offset
+        self.move_towards_pos(pos)
 
-        player = self.level.player
-        pos = player.pos + self.spot_offset
-        delta = pos - self.pos
-        if delta.magnitude > self.speed:
-            delta = delta.scaled(self.speed)
-        self.move_to(self.pos + delta)
-
-    def push_away_from_player(self):
-        player = self.level.player
-        delta = self.pos - player.pos
+    def push_away_from_entity(self, entity):
+        delta = self.pos - entity.pos
         delta2 = delta.scaled(self.body_collision_distance * 1.2)
         # print(f"push away self.pos {self.pos} player.pos {player.pos} delta {delta} delta2 {delta2}")
-        self.move_to(player.pos + delta2)
+        self.move_to(entity.pos + delta2)
 
     def on_collide_player(self):
         pass
@@ -406,6 +402,90 @@ class Splitter(BadGuy):
         if self.dead:
             return
         self.move_towards_spot()
+
+class IndividualBlob(BadGuy):
+    radius = 15
+    def __init__(self, level, leader):
+        super().__init__(level)
+
+        if leader:
+            self.init_follower(leader)
+        else:
+            self.init_leader()
+
+        self.shape = level.scene.layers[Layers.ENTITIES].add_circle(
+            radius=self.radius,
+            color=(0.1, 0.5, 0),
+            )
+
+        self.random_placement()
+
+    def init_leader(self):
+        self.leader = None
+        self.speed = 0.6
+        self.blobs = set((self,))
+
+    def init_follower(self, leader):
+        self.leader = leader
+        self.speed = 2
+        leader.blobs.add(self)
+
+    def close(self):
+        if self.leader:
+            self.leader.blobs.remove(self)
+        else:
+            self.blobs.discard(self)
+            if self.blobs:
+                new_leader = None
+                min_distance_squared = 50000000
+                for blob in self.blobs:
+                    delta = self.pos - blob.pos
+                    distance_squared = delta.magnitude_squared
+                    if min_distance_squared > distance_squared:
+                        min_distance_squared = distance_squared
+                        new_leader = blob
+                assert new_leader
+                print("ALL HAIL BLOB NEW LEADER", new_leader)
+                new_leader.init_leader()
+                print("NEW LEADER.leader", new_leader.leader)
+                new_leader.blobs = self.blobs
+                for blob in self.blobs:
+                    blob.leader = new_leader
+                # new_leader is in self.blobs!
+                new_leader.leader = None
+            self.blobs = None
+        super().close()
+
+    def update(self, dt):
+        if self.dead:
+            return
+
+        # print(f"{self.level.game.time} MOVING BLOB", self, end=" ")
+        if not self.leader:
+            # if self.leader is None, then I'm the leader,
+            # I always move!
+            # print("LEADER BLOB MOVING TOWARDS PLAYER", self)
+            self.move_towards_player()
+            return
+
+        # only move towards the leader if I'm not
+        # touching any other blobs
+        for blob in self.leader.blobs:
+            if blob == self:
+                continue
+            if entity_collision(self, blob):
+                self.push_away_from_entity(blob)
+                return
+
+        self.move_towards_pos(self.leader.pos)
+
+def Blob(level, count=30):
+    leader = IndividualBlob(level, None)
+    for i in range(count-1):
+        level.enemies.append(IndividualBlob(level, leader))
+    return leader
+
+
 
 
 class Shot(BadGuy):
