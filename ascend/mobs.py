@@ -265,7 +265,8 @@ class Entity:
         self.zone_collision_distance = (self.radius + level.player.zone_radius)
         self.zone_collision_distance_squared = self.zone_collision_distance ** 2
 
-    def _close(self):
+    def delete(self):
+        self.level.enemies.remove(self)
         self.dead = True
         if self.shape:
             self.shape.delete()
@@ -288,10 +289,6 @@ class BadGuy(Entity):
         self.spot_radius_max = 70
         self.spot_offset = Vector2D(random.randint(self.spot_radius_min, self.spot_radius_max), 0).rotated(random.randint(0, 360))
         self.head_to_spot = True
-
-    def close(self):
-        self.level.enemies.remove(self)
-        self._close()
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.id} ({repr_float(self.pos.x)}, {repr_float(self.pos.y)})>"
@@ -374,7 +371,7 @@ class BadGuy(Entity):
         self.on_death()
 
     def on_death(self):
-        self.close()
+        self.delete()
 
 
 
@@ -400,7 +397,8 @@ class Stalker(BadGuy):
     def _mkshape(self):
         self.shape = Skeleton(self.level, Vector2D(0, 0))
 
-    def _close(self):
+    def delete(self):
+        super().delete()
         self.shape.die(Vector2D())
 
     def update(self, dt):
@@ -488,17 +486,19 @@ class Splitter(BadGuy):
         self.random_placement()
         self.init_spot()
 
-    def close(self):
+    def delete(self):
         self.shape.die()
         self.shape = None
-        delta = Polar2D(self.pos - self.level.player.pos)
-        for i in range(2):
-            delta = Polar2D(60, delta.theta + math.tau / 3)
-            self.level.enemies.append(
-                StalkerBlob(self.level, pos=self.pos + delta, fast=True)
-            )
+        if self.level.player:
+            # game over
+            delta = Polar2D(self.pos - self.level.player.pos)
+            for i in range(2):
+                delta = Polar2D(60, delta.theta + math.tau / 3)
+                self.level.enemies.append(
+                    StalkerBlob(self.level, pos=self.pos + delta, fast=True)
+                )
 
-        super().close()
+        super().delete()
 
     def update(self, dt):
         if self.dead:
@@ -540,7 +540,7 @@ class Bloblet(BadGuy):
         self.speed = 2.5
         leader.blobs.add(self)
 
-    def close(self):
+    def delete(self):
         if self.leader:
             self.leader.blobs.remove(self)
         else:
@@ -562,7 +562,7 @@ class Bloblet(BadGuy):
                 # new_leader is in self.blobs!
                 new_leader.leader = None
             self.blobs = None
-        super().close()
+        super().delete()
 
     def update(self, dt):
         if self.dead:
@@ -627,7 +627,8 @@ class Shot(BadGuy):
     def on_collide_shield(self):
         self.remove()
 
-    def _close(self):
+    def delete(self):
+        super().delete()
         self.shape.hit()
 
 
@@ -703,7 +704,7 @@ class Shooter(ShooterBase):
             color='#000000ff'
         )
 
-    def close(self):
+    def delete(self):
         clock.unschedule(self.smoke)
         self.level.shooters.discard(self)
         self.level.scene.skulls.emit(
@@ -713,7 +714,7 @@ class Shooter(ShooterBase):
             spin_spread=1,
             size=8,
         )
-        super().close()
+        super().delete()
 
     def make_shot(self):
         return Shot(self)
@@ -768,9 +769,9 @@ class Spawner(ShooterBase):
         delta = self.level.player.pos - self.pos
         self.shape.angle = delta.angle()
 
-    def close(self):
+    def delete(self):
         clock.unschedule(self.bob)
-        super().close()
+        super().delete()
 
     def make_shot(self):
         if len(self.level.shooters) >= 10:
@@ -813,19 +814,16 @@ class Prince(Entity):
     def on_collide_zone(self):
         self.die()
 
-    def close(self):
+    def delete(self):
         self.level.objects.remove(self)
         if self.shape:
             self.shape.delete()
             self.hearts.delete()
             self.shape = None
 
-    def delete(self):
-        self.close()
-
     def die(self, v):
         self.level.game.lose("You killed the prince!")
-        self.close()
+        self.delete()
 
     def move_delta(self, d):
         pass

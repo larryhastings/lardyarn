@@ -506,12 +506,9 @@ class Player:
         animate(bomb, scale=1.0)
         self.bombs.append(bomb)
 
-    def close(self):
+    def delete(self):
         self.shape.delete()
         self.zone.delete()
-
-    def delete(self):
-        self.close()
 
     def compute_collision_with_bad_guy(self, bad_guy):
         if self.dead:

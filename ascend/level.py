@@ -173,7 +173,7 @@ class Level:
                 penetration_vector = self.detect_wall_collisions(mob)
                 if penetration_vector:
                     if mob.die_on_any_collision:
-                        mob.close()
+                        mob.delete()
                         return
                     mob.pos -= penetration_vector
                     mob.shape.pos = mob.pos
@@ -552,21 +552,22 @@ class Level:
 
     def delete(self):
         if self.player:
-            self.player.close()
+            self.player.delete()
             self.player = None
 
         self.pcs = []
 
-        for enemy in self.enemies:
-            enemy._close()
-        self.enemies.clear()
+        for enemy in tuple(self.enemies):
+            enemy.delete()
+        assert not self.enemies
 
-        for o in self.objects[:]:
+        for o in tuple(self.objects):
             o.delete()
+        assert not self.objects
 
-        for wall in self.walls:
-            wall._close()
-        self.walls.clear()
+        for wall in tuple(self.walls):
+            wall.delete()
+        assert not self.walls
 
 
 # Components

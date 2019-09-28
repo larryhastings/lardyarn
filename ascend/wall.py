@@ -35,6 +35,7 @@ class Wall:
         self.id = wall_id
         wall_id += 1
 
+        self.level = level
         self.points = points
         self.upper_left = Vector2D(np.min(self.points, axis=0))
         self.lower_right = Vector2D(np.max(self.points, axis=0))
@@ -56,14 +57,11 @@ class Wall:
     def __repr__(self):
         return f"<Wall {self.id} ({repr_float(self.upper_left.x)}, {repr_float(self.upper_left.y)} x ({repr_float(self.lower_right.x)}, {repr_float(self.lower_right.y)}>"
 
-    def _close(self):
+    def delete(self):
+        self.level.walls.remove(self)
         if self.shape:
             self.shape.delete()
             self.shape = None
-
-    def close(self):
-        walls.remove(self)
-        self._close()
 
     def update(self, dt):
         pass
