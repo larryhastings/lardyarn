@@ -251,7 +251,6 @@ class Level:
         self.player.delete()
         self.player = None
 
-
     def larry_update(self, t, dt, keyboard):
         if not self.player:
             return
