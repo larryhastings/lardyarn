@@ -466,7 +466,7 @@ class Splitter(BadGuy):
         self.move_towards_spot()
 
 
-class IndividualBlob(BadGuy):
+class Bloblet(BadGuy):
     radius = 15
 
     def __init__(self, level, leader):
@@ -541,9 +541,9 @@ class IndividualBlob(BadGuy):
 
 
 def Blob(level, count=30):
-    leader = IndividualBlob(level, None)
+    leader = Bloblet(level, None)
     for i in range(count-1):
-        level.enemies.append(IndividualBlob(level, leader))
+        level.enemies.append(Bloblet(level, leader))
     return leader
 
 
@@ -579,34 +579,60 @@ class Shot(BadGuy):
         self.shape.hit()
 
 
-class Shooter(BadGuy):
+class ShooterBase(BadGuy):
     min_time = 0.5
     max_time = 1.5
 
     speed = 0.3
     radius = 8
 
-    def __init__(self, level):
+    def _next_shot_time(self):
+        self.next_shot_time = self.level.game.time + self.min_time + (random.random() * (self.max_time - self.min_time))
+
+    def make_shot(self):
+        raise RuntimeError("virtual make_shot fn called")
+
+    def shoot(self):
+        shot = self.make_shot()
+        self.level.enemies.append(shot)
+        self._next_shot_time()
+
+    def move(self):
+        raise RuntimeError("virtual move fn called")
+
+    def update(self, dt):
+        if self.dead:
+            return
+        self.move(dt)
+        if self.level.game.time >= self.next_shot_time:
+            self.shoot()
+
+class Shooter(ShooterBase):
+    final_speed = ShooterBase.speed
+
+    def __init__(self, level, pos=None, speed_boost=None, period=None):
         super().__init__(level)
         self.shape = level.scene.layers[Layers.ENTITIES].add_sprite(
             'skeleton-head',
             color=(0.7, 0.6, 0.6, 1),
         )
         self.shape.scale = 1.3
-        self.random_placement()
+        if pos == None:
+            self.random_placement()
+        else:
+            self.pos = self.shape.pos = pos
         self.init_spot()
+
+        if speed_boost:
+            self.initial_speed = self.speed = speed_boost
+            self.start_time = self.level.game.time
+            self.period = period
+        else:
+            self.initial_speed = None
+            self.speed = self.final_speed
 
         self._next_shot_time()
         clock.each_tick(self.smoke)
-
-    def _next_shot_time(self):
-        self.next_shot_time = self.level.game.time + self.min_time + (random.random() * (self.max_time - self.min_time))
-
-    def shoot(self):
-        # print("shoot!", self)
-        shot = Shot(self)
-        self.level.enemies.append(shot)
-        self._next_shot_time()
 
     SMOKE_RATE = 100
 
@@ -633,11 +659,63 @@ class Shooter(BadGuy):
         clock.unschedule(self.smoke)
         super().close()
 
-    def update(self, dt):
-        if self.dead:
-            return
+    def make_shot(self):
+        return Shot(self)
+
+    def move(self, dt):
+        if self.initial_speed:
+            elapsed = self.level.game.time - self.start_time
+            if elapsed >= self.period:
+                self.speed = self.final_speed
+                self.initial_speed = None
+            else:
+                ratio = (self.period - elapsed) / self.period
+                current_speed = self.final_speed + ((self.initial_speed - self.final_speed) * ratio)
+                self.speed = current_speed
         player = self.level.player
         self.shape.angle = Vector2D(player.pos - self.shape.pos).angle()
         self.move_towards_spot()
-        if self.level.game.time >= self.next_shot_time:
-            self.shoot()
+
+
+class Spawner(ShooterBase):
+
+    min_time = 0.25
+    max_time = 0.8
+
+    spawn_distance = 20
+    radius = 20
+
+    def __init__(self, level, corner):
+        super().__init__(level)
+        scene = level.scene
+        self.shape = scene.layers[Layers.UPPER_ENTITIES].add_star(
+            points=3,
+            outer_radius=self.radius,
+            inner_radius=self.radius / 3,
+            fill=False,
+            color=(0.8, 0.8, 0.15, 1),
+        )
+
+        # start some distance away from our corner
+        screen_center = Vector2D(scene.width / 2, scene.height / 2)
+        delta = screen_center - corner
+
+        self.final_position = corner + delta.scaled(math.sqrt(self.radius) * 1.1)
+
+        delta = delta.scaled(delta.magnitude * (0.4 + (random.random() * 0.3)))
+        one_sixth_tau = math.tau / 6
+        one_twelfth_tau = math.tau / 12
+        delta = delta.rotated(one_twelfth_tau - (random.random() * one_sixth_tau))
+        self.pos = self.shape.pos = corner + delta
+
+        self._next_shot_time()
+
+    def make_shot(self):
+        delta = self.level.player.pos - self.pos
+        if delta.magnitude > self.spawn_distance:
+            delta = delta.scaled(self.spawn_distance)
+        shooter = Shooter(self.level, pos=self.pos + delta, speed_boost=8.0, period=0.2)
+        return shooter
+
+    def move(self, dt):
+        self.move_towards_pos(self.final_position)

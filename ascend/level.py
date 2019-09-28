@@ -15,7 +15,7 @@ from .mobs import Skeleton, Mage
 
 from .vector2d import Vector2D, Polar2D
 from .wall import Wall
-from .mobs import Shooter, Stalker, Splitter, Blob
+from .mobs import Shooter, Stalker, Splitter, Blob, Spawner
 from .knight import KnightController
 from .control import JoyController, KeyboardController
 
@@ -247,7 +247,7 @@ class Level:
         generate_level(self)
 
         if len(sys.argv) > 1 and sys.argv[1] == "1":
-            enemies.append(Blob(self))
+            enemies.append(Spawner(self, Vector2D(0, 0)))
         else:
             for i in range(15):
                 enemies.append(Stalker(self, fast=False))

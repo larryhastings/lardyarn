@@ -14,8 +14,9 @@ class Layers(enum.IntEnum):
     LOWER_EFFECTS = 2
     UPPER_EFFECTS = 3
     ENTITIES = 4
-    BULLETS = 5
-    ZONE = 6
+    UPPER_ENTITIES = 5
+    BULLETS = 6
+    ZONE = 7
     TEXTBG = 8
     TEXT = 9
 
