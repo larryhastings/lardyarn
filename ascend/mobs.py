@@ -218,6 +218,21 @@ class BadGuy:
         self.zone_collision_distance = (self.radius + level.player.zone_radius)
         self.zone_collision_distance_squared = self.zone_collision_distance ** 2
 
+    def init_spot(self):
+        # pick a random spot near the player
+        #
+        # move towards that spot until you get "close enough" to the player,
+        # at which point head directly towards the player.
+        #
+        # until they get "too far" from the player,
+        # at which point start moving towards the spot again.
+        self.spot_high_watermark = 140
+        self.spot_low_watermark = 90
+        self.spot_radius_min = 30
+        self.spot_radius_max = 70
+        self.spot_offset = Vector2D(random.randint(self.spot_radius_min, self.spot_radius_max), 0).rotated(random.randint(0, 360))
+        self.head_to_spot = True
+
     def _close(self):
         self.dead = True
         self.shape.delete()
@@ -250,6 +265,7 @@ class BadGuy:
                 continue
 
             break
+        self.shape.pos = self.pos
 
     speed = 1
     radius = 1
@@ -289,6 +305,25 @@ class BadGuy:
             delta = delta.scaled(self.speed)
         self.move_to(self.pos + delta)
 
+    def move_towards_spot(self):
+        player = self.level.player
+        delta = player.pos - self.pos
+        distance_to_player = delta.magnitude
+
+        threshold = self.spot_low_watermark if self.head_to_spot else self.spot_high_watermark
+        self.head_to_spot = distance_to_player > threshold
+
+        if not self.head_to_spot:
+            self.move_towards_player()
+            return
+
+        player = self.level.player
+        pos = player.pos + self.spot_offset
+        delta = pos - self.pos
+        if delta.magnitude > self.speed:
+            delta = delta.scaled(self.speed)
+        self.move_to(self.pos + delta)
+
     def push_away_from_player(self):
         player = self.level.player
         delta = self.pos - player.pos
@@ -313,15 +348,7 @@ class BadGuy:
 class Stalker(BadGuy):
     radius = 10
 
-    def move_towards_spot(self):
-        player = self.level.player
-        pos = player.pos + self.spot_offset
-        delta = pos - self.pos
-        if delta.magnitude > self.speed:
-            delta = delta.scaled(self.speed)
-        self.move_to(self.pos + delta)
-
-    def __init__(self, level, fast):
+    def __init__(self, level, fast, *, pos=None):
         super().__init__(level)
         if fast:
             self.speed = 1.75
@@ -331,45 +358,54 @@ class Stalker(BadGuy):
             color = (0.8, 0.3, 0.3)
 
         self.shape = Skeleton(self.level, Vector2D(0, 0))
-#        scene.layers[Layers.ENTITIES].add_star(
-#            outer_radius=self.radius,
-#            inner_radius=4,
-#            points = 6,
-#            color=color,
-#            )
-        self.random_placement()
-        self.spot_high_watermark = 140
-        self.spot_low_watermark = 90
-        self.spot_radius_min = 30
-        self.spot_radius_max = 70
-        self.spot_offset = Vector2D(random.randint(self.spot_radius_min, self.spot_radius_max), 0).rotated(random.randint(0, 360))
-        self.head_to_spot = True
+        if pos is None:
+            self.random_placement()
+        else:
+            self.pos = self.shape.pos = pos
+        self.init_spot()
+
+    def _close(self):
+        self.shape.die(Vector2D())
 
     def update(self, dt):
         if self.dead:
             return
+        self.move_towards_spot()
 
-        # Stalkers pick a random spot near the player
-        #
-        # they move towards that spot until they get "close enough" to the player
-        # at which point they head directly towards the player
-        #
-        # until they get "too far" from the player,
-        # at which point they start moving towards the random spot again.
-        player = self.level.player
-        delta = player.pos - self.pos
-        distance_to_player = delta.magnitude
 
-        threshold = self.spot_low_watermark if self.head_to_spot else self.spot_high_watermark
-        self.head_to_spot = distance_to_player > threshold
+class Splitter(BadGuy):
+    radius = 20
 
-        if self.head_to_spot:
-            self.move_towards_spot()
-        else:
-            self.move_towards_player()
+    def __init__(self, level):
+        super().__init__(level)
+        self.speed = 1.3
+        color = (0.5, 0.2, 0.5)
 
-    def _close(self):
-        self.shape.die(Vector2D())
+        layer = self.game.scene.layers[Layers.ENTITIES]
+        self.shape = layer.add_star(
+            points=4,
+            outer_radius=self.radius,
+            inner_radius=self.radius/2,
+            fill=True,
+            color=color,
+            )
+        self.random_placement()
+        self.init_spot()
+
+    def close(self):
+        delta = Polar2D(self.pos - self.level.player.pos)
+        for i in range(2):
+            delta = Polar2D(60, delta.theta + math.tau / 3)
+            self.level.enemies.append(
+                Stalker(self.level, pos=self.pos + delta, fast=True)
+                )
+
+        super().close()
+
+    def update(self, dt):
+        if self.dead:
+            return
+        self.move_towards_spot()
 
 
 class Shot(BadGuy):
@@ -419,6 +455,7 @@ class Shooter(BadGuy):
             color=(1/2, 0, 1),
             )
         self.random_placement()
+        self.init_spot()
 
         self._next_shot_time()
 
@@ -434,7 +471,8 @@ class Shooter(BadGuy):
     def update(self, dt):
         if self.dead:
             return
-        self.move_towards_player()
+        self.move_towards_spot()
         if self.level.game.time >= self.next_shot_time:
             self.shoot()
+
 

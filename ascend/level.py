@@ -10,7 +10,7 @@ from .mobs import Skeleton, Mage
 
 from .vector2d import Vector2D, Polar2D
 from .wall import Wall
-from .mobs import Shooter, Stalker
+from .mobs import Shooter, Stalker, Splitter
 from .knight import KnightController
 from .control import JoyController, KeyboardController
 
@@ -224,13 +224,16 @@ class Level:
 
 
         if len(sys.argv) > 1 and sys.argv[1] == "1":
-            enemies.append(Stalker(self, fast=False))
+            enemies.append(Splitter(self))
         else:
             for i in range(15):
                 enemies.append(Stalker(self, fast=False))
 
             for i in range(3):
                 enemies.append(Stalker(self, fast=True))
+
+            for i in range(2):
+                enemies.append(Splitter(self))
 
             for i in range(5):
                 enemies.append(Shooter(self))
