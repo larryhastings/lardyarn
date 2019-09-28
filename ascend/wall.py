@@ -12,12 +12,12 @@ class Wall:
     # remember that in Wasabi2d (0, 0) is in the upper-left.
     # x grows as we move right.
     # y grows as we move down.
-    def __init__(self, world, upper_left, lower_right, visible=True):
+    def __init__(self, level, upper_left, lower_right, visible=True):
         global wall_id
         self.id = wall_id
         wall_id += 1
 
-        self.world = world
+        self.level = level
         self.upper_left = upper_left
         self.lower_right = lower_right
         self.width = lower_right.x - upper_left.x
@@ -33,7 +33,7 @@ class Wall:
             ]
 
         if visible:
-            self.layer = world.scene.layers[Layers.WALL_LAYER]
+            self.layer = level.scene.layers[Layers.WALL]
             self.shape = self.layer.add_rect(
                 pos=self.pos,
                 width=self.width,

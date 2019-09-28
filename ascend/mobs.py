@@ -13,11 +13,11 @@ class MagicMissile:
     SPEED = 200
     SPIN = 0.5
 
-    def __init__(self, world, pos, vel):
-        self.world = world
-        self.scene = world.scene
+    def __init__(self, level, pos, vel):
+        self.level = level
+        self.scene = level.scene
         self.vel = vel
-        self.sprite = self.scene.layers[0].add_sprite(
+        self.sprite = self.scene.layers[Layers.UPPER_EFFECTS].add_sprite(
             'spark',
             pos=pos,
         )
@@ -56,8 +56,8 @@ class MagicMissile:
         )
 
     def delete(self):
-        """Remove the missile from the world."""
-        self.world.objects.remove(self)
+        """Remove the missile from the level."""
+        self.level.objects.remove(self)
         self.sprite.delete()
 
     def hit(self):
@@ -96,23 +96,23 @@ class TimedMagicMissile(MagicMissile):
 class Skeleton:
     radius = 12
 
-    def __init__(self, world, pos, angle=0):
-        self.world = world
-        scene = self.scene = world.scene
+    def __init__(self, level, pos, angle=0):
+        self.level = level
+        scene = self.scene = level.scene
 
-        self.body = scene.layers[0].add_sprite(
+        self.body = scene.layers[Layers.ENTITIES].add_sprite(
             'skeleton-body',
             pos=pos,
             angle=angle
         )
         self.body_animate = None
-        self.head = scene.layers[0].add_sprite(
+        self.head = scene.layers[Layers.ENTITIES].add_sprite(
             'skeleton-head',
             pos=pos,
             angle=angle
         )
 
-        self.target = random.choice(world.pcs) if world.pcs else None
+        self.target = random.choice(level.pcs) if level.pcs else None
         self.bob = 1.0
         self.gait_speed = random.uniform(0.3, 0.5)
         self.gait_step = random.uniform(1.07, 1.2)
@@ -184,9 +184,9 @@ class Mage(Skeleton):
         pos = self.pos
         aim = Vector2(*self.target.pos) - pos
 
-        self.world.objects.append(
+        self.level.objects.append(
             TimedMagicMissile(
-                self.world,
+                self.level,
                 pos,
                 aim.normalize() * MagicMissile.SPEED
             )
@@ -202,20 +202,20 @@ bad_guy_id = 1
 class BadGuy:
     die_on_any_collision = False
 
-    def __init__(self, world):
-        self.world = world
-        self.game = world.game
+    def __init__(self, level):
+        self.level = level
+        self.game = level.game
 
         global bad_guy_id
         self.pos = Vector2D()
         self.id = bad_guy_id
         bad_guy_id += 1
         self.radius_squared = self.radius ** 2
-        self.outer_collision_distance = (self.radius + world.player.outer_radius)
+        self.outer_collision_distance = (self.radius + level.player.outer_radius)
         self.outer_collision_distance_squared = self.outer_collision_distance ** 2
-        self.body_collision_distance = (self.radius + world.player.body_radius)
+        self.body_collision_distance = (self.radius + level.player.body_radius)
         self.body_collision_distance_squared = self.body_collision_distance ** 2
-        self.zone_collision_distance = (self.radius + world.player.zone_radius)
+        self.zone_collision_distance = (self.radius + level.player.zone_radius)
         self.zone_collision_distance_squared = self.zone_collision_distance ** 2
 
     def _close(self):
@@ -223,7 +223,7 @@ class BadGuy:
         self.shape.delete()
 
     def close(self):
-        self.world.enemies.remove(self)
+        self.level.enemies.remove(self)
         self._close()
 
     def __repr__(self):
@@ -233,20 +233,20 @@ class BadGuy:
     min_random_distance_squared = min_random_distance ** 2
     random_placement_inset = 20
     def random_placement(self):
-        world = self.world
+        level = self.level
         while True:
             offset = self.random_placement_inset
             self.pos = Vector2D(
-                random.randint(offset, world.scene.width - offset),
-                random.randint(offset, world.scene.height - offset))
+                random.randint(offset, level.scene.width - offset),
+                random.randint(offset, level.scene.height - offset))
 
             # don't go near the player
-            delta = world.player.pos - self.pos
+            delta = level.player.pos - self.pos
             if delta.magnitude_squared < self.min_random_distance_squared:
                 continue
 
             # don't intersect with any walls
-            if self.world.detect_wall_collisions(self):
+            if self.level.detect_wall_collisions(self):
                 continue
 
             break
@@ -258,18 +258,18 @@ class BadGuy:
     def move_to(self, v):
         # print(f"{time:8}", self, "move to", v)
         self.shape.pos = self.pos = v
-        player = self.world.player
+        player = self.level.player
 
         collision = player.compute_collision_with_bad_guy(self)
 
-        if collision == CollisionType.COLLISION_WITH_ZONE:
+        if collision == CollisionType.ZONE:
             player.on_collision_zone(self)
             self.on_collide_zone()
-        elif collision == CollisionType.COLLISION_WITH_PLAYER:
+        elif collision == CollisionType.PLAYER:
             player.on_collision_body(self)
             self.on_collide_player()
         else:
-            penetration_vector = self.world.detect_wall_collisions(self)
+            penetration_vector = self.level.detect_wall_collisions(self)
             if penetration_vector:
                 if self.die_on_any_collision:
                     self.close()
@@ -283,14 +283,14 @@ class BadGuy:
         self.move_to(v)
 
     def move_towards_player(self):
-        player = self.world.player
+        player = self.level.player
         delta = player.pos - self.pos
         if delta.magnitude > self.speed:
             delta = delta.scaled(self.speed)
         self.move_to(self.pos + delta)
 
     def push_away_from_player(self):
-        player = self.world.player
+        player = self.level.player
         delta = self.pos - player.pos
         delta2 = delta.scaled(self.body_collision_distance * 1.2)
         # print(f"push away self.pos {self.pos} player.pos {player.pos} delta {delta} delta2 {delta2}")
@@ -314,15 +314,15 @@ class Stalker(BadGuy):
     radius = 10
 
     def move_towards_spot(self):
-        player = self.world.player
+        player = self.level.player
         pos = player.pos + self.spot_offset
         delta = pos - self.pos
         if delta.magnitude > self.speed:
             delta = delta.scaled(self.speed)
         self.move_to(self.pos + delta)
 
-    def __init__(self, world, fast):
-        super().__init__(world)
+    def __init__(self, level, fast):
+        super().__init__(level)
         if fast:
             self.speed = 1.75
             color = (1, 0.75, 0)
@@ -330,8 +330,8 @@ class Stalker(BadGuy):
             self.speed = 0.8
             color = (0.8, 0.3, 0.3)
 
-        self.shape = Skeleton(self.world, Vector2D(0, 0))
-#        scene.layers[Layers.ENTITIES_LAYER].add_star(
+        self.shape = Skeleton(self.level, Vector2D(0, 0))
+#        scene.layers[Layers.ENTITIES].add_star(
 #            outer_radius=self.radius,
 #            inner_radius=4,
 #            points = 6,
@@ -356,7 +356,7 @@ class Stalker(BadGuy):
         #
         # until they get "too far" from the player,
         # at which point they start moving towards the random spot again.
-        player = self.world.player
+        player = self.level.player
         delta = player.pos - self.pos
         distance_to_player = delta.magnitude
 
@@ -379,13 +379,13 @@ class Shot(BadGuy):
     die_on_any_collision = True
 
     def __init__(self, shooter):
-        super().__init__(shooter.world)
-        player = self.world.player
+        super().__init__(shooter.level)
+        player = self.level.player
         self.shooter = shooter
         self.pos = Vector2D(shooter.shape.pos[0], shooter.shape.pos[1])
         self.delta = (player.pos - self.pos).scaled(self.speed)
-        self.shape = MagicMissile(self.world, self.pos, self.delta)
-        self.world.objects.append(self.shape)
+        self.shape = MagicMissile(self.level, self.pos, self.delta)
+        self.level.objects.append(self.shape)
         self.expiration_date = self.game.time + self.lifetime
         sounds.enemy_shot.play()
 
@@ -412,9 +412,9 @@ class Shooter(BadGuy):
     speed = 0.3
     radius = 8
 
-    def __init__(self, world):
-        super().__init__(world)
-        self.shape = world.scene.layers[Layers.ENTITIES_LAYER].add_circle(
+    def __init__(self, level):
+        super().__init__(level)
+        self.shape = level.scene.layers[Layers.ENTITIES].add_circle(
             radius=self.radius,
             color=(1/2, 0, 1),
             )
@@ -423,18 +423,18 @@ class Shooter(BadGuy):
         self._next_shot_time()
 
     def _next_shot_time(self):
-        self.next_shot_time = self.world.game.time + self.min_time + (random.random() * (self.max_time - self.min_time))
+        self.next_shot_time = self.level.game.time + self.min_time + (random.random() * (self.max_time - self.min_time))
 
     def shoot(self):
         # print("shoot!", self)
         shot = Shot(self)
-        self.world.enemies.append(shot)
+        self.level.enemies.append(shot)
         self._next_shot_time()
 
     def update(self, dt):
         if self.dead:
             return
         self.move_towards_player()
-        if self.world.game.time >= self.next_shot_time:
+        if self.level.game.time >= self.next_shot_time:
             self.shoot()
 

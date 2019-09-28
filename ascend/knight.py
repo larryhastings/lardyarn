@@ -85,9 +85,9 @@ class Bomb:
     EXPLODE_TIME = 3
     BLINK_TIME = 2.3
 
-    def __init__(self, world, pos, vel):
-        self.world = world
-        self.scene = world.scene
+    def __init__(self, level, pos, vel):
+        self.level = level
+        self.scene = level.scene
         self.vel = vel
         self.sprite = self.scene.layers[0].add_sprite('bomb', pos=pos)
         self.age = 0
@@ -118,7 +118,7 @@ class Bomb:
 
     def explode(self):
         self.scene.camera.screen_shake()
-        self.world.objects.remove(self)
+        self.level.objects.remove(self)
         self.sprite.delete()
         self.pos = self.sprite.pos
         for pgroup in (self.scene.sparks,):
@@ -148,7 +148,7 @@ class Bomb:
     def apply_damage(self):
         pos = Vector2(*self.pos)
         survivors = []
-        for mob in self.world.mobs:
+        for mob in self.level.mobs:
             sep = mob.pos - pos
             dmg = 1e5 / sep.magnitude_squared()
             if dmg > 30:
@@ -157,7 +157,7 @@ class Bomb:
                 # TODO: apply impulse, rather than affecting position
                 mob.pos += sep.normalize() * dmg
                 survivors.append(mob)
-        self.world.mobs[:] = survivors
+        self.level.mobs[:] = survivors
 
 
 class Knight:
@@ -165,9 +165,9 @@ class Knight:
 
     radius = 12
 
-    def __init__(self, world, color=(1, 1, 1, 1)):
-        self.world = world
-        scene = self.scene = world.scene
+    def __init__(self, level, color=(1, 1, 1, 1)):
+        self.level = level
+        scene = self.scene = level.scene
         shield_sprite = scene.layers[0].add_sprite('shield')
         sword_sprite = scene.layers[1].add_sprite('sword-gripped')
         sword_sprite.color = (1.4, 1.4, 1.4, 1)
@@ -250,7 +250,7 @@ class Knight:
         direction.from_polar((1, math.degrees(angle)))
         pos = Vector2(*self.knight.pos) + self.radius * direction
         vel = self.v + direction * Bomb.SPEED
-        self.world.spawn_bomb(pos, vel)
+        self.level.spawn_bomb(pos, vel)
 
     # Smoke in particles per pixel
     SMOKE_RATE = 0.07
@@ -282,7 +282,7 @@ class KnightController:
         self.v = Vector2()
         self.accel = Vector2()  # direction of the acceleration
 
-        clock.each_tick(self.update)
+        # clock.each_tick(self.update)
 
     @property
     def sword(self):
@@ -448,13 +448,13 @@ class Player:
 
     message = None
 
-    def __init__(self, world):
-        self.world = world
-        self.game = world.game
-        scene = world.scene
+    def __init__(self, level):
+        self.level = level
+        self.game = level.game
+        scene = level.scene
         screen_center = Vector2D(scene.width / 2, scene.height / 2)
         self.pos = Vector2D(screen_center)
-        self.shape = Knight(world)
+        self.shape = Knight(level)
         self.shape.knight.pos = self.pos
 
         self.momentum = Vector2D()
@@ -480,7 +480,7 @@ class Player:
             append(theta)
             theta += step
 
-        self.zone_layer = scene.layers[Layers.ZONE_LAYER]
+        self.zone_layer = scene.layers[Layers.ZONE]
         self.zone = self.zone_layer.add_polygon(
             vertices,
             fill=True,
@@ -492,7 +492,7 @@ class Player:
 
         self.zone_triangle = self.previous_zone_triangle = []
 
-        self.message = scene.layers[Layers.TEXT_LAYER].add_label(
+        self.message = scene.layers[Layers.TEXT].add_label(
             text=".",
             fontsize=44.0,
             align="center",
@@ -510,28 +510,28 @@ class Player:
 
     def compute_collision_with_bad_guy(self, bad_guy):
         if self.dead:
-            return CollisionType.NO_COLLISION
+            return CollisionType.NONE
 
         distance_vector = self.pos - bad_guy.pos
         distance_squared = distance_vector.magnitude_squared
         intersect_outer_radius = distance_squared <= bad_guy.outer_collision_distance_squared
         if not intersect_outer_radius:
-            return CollisionType.NO_COLLISION
+            return CollisionType.NONE
 
         # bad_guy intersecting with the zone?
         if self.zone_layer.visible:
             if (self.previous_zone_triangle
                 and polygon_collision(self.previous_zone_triangle, bad_guy.pos, bad_guy.radius)):
-                return CollisionType.COLLISION_WITH_ZONE
+                return CollisionType.ZONE
 
             if polygon_collision(self.zone_triangle, bad_guy.pos, bad_guy.radius):
-                return CollisionType.COLLISION_WITH_ZONE
+                return CollisionType.ZONE
 
         intersect_body_radius = distance_squared <= bad_guy.body_collision_distance_squared
         # print(f"    interecting body? {intersect_body_radius}")
 
         if intersect_body_radius:
-            return CollisionType.COLLISION_WITH_PLAYER
+            return CollisionType.PLAYER
 
     def update(self, dt, keyboard):
         if self.zone_flash_until and (self.zone_flash_until < self.game.time):
@@ -578,7 +578,7 @@ class Player:
         if self.pos == starting_pos:
             return
 
-        penetration_vector = self.world.detect_wall_collisions(self)
+        penetration_vector = self.level.detect_wall_collisions(self)
         if penetration_vector:
             # we hit one or more walls!
 

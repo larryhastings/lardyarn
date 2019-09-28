@@ -8,11 +8,8 @@ from ascend.sound import init_sound
 
 settings = load_settings()
 
-game = game.Game(settings)
-game.create_scene()
-world = game.create_world()
-game.create_players()
-world.spawn_mobs(num=20)
+game = game.Game(settings, "dan")
+level = game.new()
 
 
 SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT

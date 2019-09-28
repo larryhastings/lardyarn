@@ -1,15 +1,13 @@
 from wasabi2d import Scene, event, run, clock
 import pygame
-from pygame import joystick
 from pathlib import Path
-
+import sys
 
 import ascend
 
-from .knight import KnightController
-from .control import JoyController, KeyboardController, init_controls
+from . import control
 from .constants import Layers
-from .world import World
+from .level import Level
 
 
 __all__ = [
@@ -20,52 +18,18 @@ __all__ = [
 
 
 class Game:
-    def __init__(self, settings):
+    def __init__(self, settings, gametype):
+        self.settings = settings
+        self.gametype = gametype
+
         self.scene = None
-        self.world = None
+        self.level = None
         self.time = 0.0
         self.frame = 0
         self.paused = False
-        self.settings = settings
 
-        self.controllers = []
-
-    def create_players(self):
-        world = self.world
-        player1 = KnightController(world.spawn_pc())
-
-        if joystick.get_count() > 0:
-            self.controllers.append(
-                JoyController(player1, joystick.Joystick(0))
-            )
-        else:
-            self.controllers.append(
-                KeyboardController(player1)
-            )
-
-        if joystick.get_count() > 1:
-            print("2-player game")
-            player1.knight.pos.x *= 0.5
-            player2 = KnightController(world.spawn_pc(color=(0.4, 0.9, 1.1, 1)))
-            player2.knight.pos.x += player1.pos.x
-            self.controllers.append(
-                JoyController(player2, joystick.Joystick(1))
-            )
-        else:
-            print("1-player game")
-
-        clock.each_tick(self.update_input)
-
-
-    def update_input(self, dt):
-        for controller in self.controllers:
-            controller.update()
-
-
-    def create_world(scene):
-        world = World(scene)
-        clock.each_tick(world.update)
-        return world
+        event(self.update)
+        self.create_scene()
 
 
     def create_scene(self):
@@ -78,22 +42,22 @@ class Game:
         )
 
         scene.background = (0.2, 0.2, 0.2)
-        scene.layers[Layers.WALL_LAYER].set_effect(
+        scene.layers[Layers.WALL].set_effect(
             'dropshadow',
             radius=2,
             offset=(1.5, 1.5)
         )
-        scene.layers[Layers.WALL_LAYER].set_effect(
+        scene.layers[Layers.WALL].set_effect(
             'dropshadow',
             radius=3,
             offset=(3, 3)
         )
-        scene.layers[Layers.LOWER_EFFECTS_LAYER].set_effect(
+        scene.layers[Layers.LOWER_EFFECTS].set_effect(
             'bloom',
             radius=10,
         )
 
-        smoke = scene.layers[Layers.LOWER_EFFECTS_LAYER].add_particle_group(
+        smoke = scene.layers[Layers.LOWER_EFFECTS].add_particle_group(
             texture='smoke',
             grow=0.1,
             max_age=0.8,
@@ -104,7 +68,7 @@ class Game:
         smoke.add_color_stop(0.8, '#88888800')
         scene.smoke = smoke
 
-        sparks = scene.layers[Layers.UPPER_EFFECTS_LAYER].add_particle_group(
+        sparks = scene.layers[Layers.UPPER_EFFECTS].add_particle_group(
             texture='spark',
             grow=0.1,
             max_age=0.6,
@@ -115,13 +79,13 @@ class Game:
         sparks.add_color_stop(0.6, (0, 0, 0, 0))
         scene.sparks = sparks
 
-        scene.bones = scene.layers[Layers.DEBRIS_LAYER].add_particle_group(
+        scene.bones = scene.layers[Layers.DEBRIS].add_particle_group(
             texture='bone',
             max_age=4,
             drag=0.1,
             spin_drag=0.4,
         )
-        scene.skulls = scene.layers[Layers.DEBRIS_LAYER].add_particle_group(
+        scene.skulls = scene.layers[Layers.DEBRIS].add_particle_group(
             texture='skull',
             max_age=4,
             drag=0.1,
@@ -132,23 +96,41 @@ class Game:
             pgroup.add_color_stop(1, '#bbbbbbff')
             pgroup.add_color_stop(4, '#bbbbbb00')
 
+    def new(self):
+        print("[INFO] New game.")
 
-    def create_world(self):
-        self.world = World(self)
-        clock.each_tick(self.world.update)
-        return self.world
-
-
-
-    def new_game(self):
+        self.delete_level()
         self.paused = False
 
-        self.world.new_game()
+        self.level = Level(self, self.gametype)
 
-    def close_game(self):
-        self.world.close_game()
+        return self.level
 
+    def delete(self):
+        self.delete_level()
 
-    def update(self, dt, keyboard):
+    def delete_level(self):
+        if self.level:
+            self.level.delete()
+            self.level = None
+
+    def update(self, t, dt, keyboard):
         self.time += dt
         self.frame += 1
+
+        if keyboard.escape:
+            sys.exit("[INFO] Quittin' time!")
+
+        if self.paused:
+            if control.stick:
+                for button in (0, 1, 2, 3):
+                    if control.stick.get_button(button):
+                        self.new()
+                        break
+            return
+
+        if self.level:
+            if not hasattr(self.level, "update"):
+                print("LEVEL", self.level, type(self.level))
+                print("DIR LEVEL", dir(self.level))
+            self.level.update(t, dt, keyboard)

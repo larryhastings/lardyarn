@@ -2,34 +2,19 @@
 
 print("[INFO] Initializing runtime...")
 
-import sys
-import math
-import random
-from pathlib import Path
-
-import ascend
 from ascend.settings import load_settings
 import pygame
+from wasabi2d import event, run
 
-from wasabi2d import Scene, run, event, keys, sounds
-import pygame.mouse
-from pygame import joystick
-from ascend.triangle_intersect import polygon_collision
-from ascend.vector2d import Vector2D, Polar2D
-
-from ascend.knight import Knight
-from ascend.mobs import MagicMissile, Skeleton
 from ascend.sound import init_sound
 from ascend.game import Game
 from ascend.control import init_controls
 
 
-
-
 @event
 def update(dt, keyboard):
     game.update(dt, keyboard)
-    game.world.proto_update(dt, keyboard)
+    game.level.proto_update(dt, keyboard)
 
 
 SHIFT = pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT
@@ -43,8 +28,7 @@ def on_key_down(key, mod):
             game.scene.screenshot()
 
     if game.paused and (key == key.SPACE):
-        close_game(game)
-        new_game(game)
+        game.new()
 
 
 
@@ -66,11 +50,7 @@ settings = load_settings()
 init_sound(settings)
 init_controls(settings)
 
-game = Game(settings)
-game.create_scene()
-game.create_world()
-
-
-game.new_game()
+game = Game(settings, "larry")
+level = game.new()
 
 run()  # keep this at the end of the file

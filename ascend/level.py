@@ -3,6 +3,7 @@ import math
 import sys
 
 from wasabi2d import Vector2
+from pygame import joystick
 
 from .knight import Knight, Bomb, Player
 from .mobs import Skeleton, Mage
@@ -10,6 +11,8 @@ from .mobs import Skeleton, Mage
 from .vector2d import Vector2D, Polar2D
 from .wall import Wall
 from .mobs import Shooter, Stalker
+from .knight import KnightController
+from .control import JoyController, KeyboardController
 
 from . import control
 from .constants import Layers
@@ -34,18 +37,53 @@ def line_segment_intersects_circle(start, along, center, radius):
     return P1 + t * V
 
 
-class World:
-    def __init__(self, game):
+class Level:
+    def __init__(self, game, gametype):
         self.game = game
         self.scene = game.scene
+
         self.pcs = []
         self.objects = []
-        self.mobs = []
 
-        self.player = None
-        self.enemies = []
-        self.walls = []
+        if gametype == "dan":
+            self.mobs = []
+            self.controllers = []
+            self.update = self.dan_update
+            self.dan_new_level()
+        else:
+            self.player = None
+            self.enemies = []
+            self.walls = []
+            self.update = self.larry_update
+            self.larry_new_level()
 
+    def dan_new_level(self):
+        self.create_players()
+        self.spawn_mobs(num=20)
+
+    def create_players(self):
+        level = self
+        player1 = KnightController(level.spawn_pc())
+
+        if joystick.get_count() > 0:
+            self.controllers.append(
+                JoyController(player1, joystick.Joystick(0))
+            )
+        else:
+            self.controllers.append(
+                KeyboardController(player1)
+            )
+
+        if joystick.get_count() > 1:
+            print("2-player game")
+            player1.knight.pos.x *= 0.5
+            player2 = KnightController(level.spawn_pc(color=(0.4, 0.9, 1.1, 1)))
+            player2.knight.pos.x += player1.pos.x
+            self.controllers.append(
+                JoyController(player2, joystick.Joystick(1))
+            )
+        else:
+            print("1-player game")
 
     def spawn_pc(self, *, color='white') -> Knight:
         knight = Knight(self, color)
@@ -66,7 +104,10 @@ class World:
                 Mage(self, Vector2(x, y), angle)
             )
 
-    def update(self, dt):
+    def dan_update(self, t, dt, keyboard):
+        for controller in self.controllers:
+            controller.update()
+
         for pc in self.pcs:
             pc.update(dt)
 
@@ -141,18 +182,10 @@ class World:
 
     def new_player(self):
         self.player = Player(self)
+        self.pcs.append(self.player)
 
-    def proto_update(self, dt, keyboard):
-        if keyboard.escape:
-            sys.exit("[INFO] Quittin' time!")
-
-        if self.game.paused:
-            if control.stick:
-                for button in (0, 1, 2, 3):
-                    if control.stick.get_button(button):
-                        self.game.close_game()
-                        self.game.new_game()
-                        break
+    def larry_update(self, t, dt, keyboard):
+        if not self.player:
             return
 
         self.player.update(dt, keyboard)
@@ -163,49 +196,49 @@ class World:
             for enemy in self.enemies:
                 enemy.update(dt)
 
-    def new_game(self):
+    def larry_new_level(self):
         print("[INFO] Spawning player and enemies...")
 
-        world = self
         scene = self.scene
 
-        world.new_player()
+        self.new_player()
 
-        enemies = world.enemies
-        walls = world.walls
+        enemies = self.enemies
+        walls = self.walls
 
         assert not (enemies or walls)
 
         ul = Vector2D(0, 0)
         lr = Vector2D(scene.width, scene.height)
 
-        walls.append(Wall(world, ul, Vector2D(scene.width, 20)))
-        walls.append(Wall(world, Vector2D(0, scene.height - 20), lr))
+        walls.append(Wall(self, ul, Vector2D(scene.width, 20)))
+        walls.append(Wall(self, Vector2D(0, scene.height - 20), lr))
 
-        walls.append(Wall(world, ul, Vector2D(20, scene.height)))
-        walls.append(Wall(world, Vector2D(scene.width - 20, 0), lr))
+        walls.append(Wall(self, ul, Vector2D(20, scene.height)))
+        walls.append(Wall(self, Vector2D(scene.width - 20, 0), lr))
 
         # and a wall in the middle to play with
-        walls.append(Wall(world, Vector2D(600, 200), Vector2D(800, 400)))
+        walls.append(Wall(self, Vector2D(600, 200), Vector2D(800, 400)))
 
 
         if len(sys.argv) > 1 and sys.argv[1] == "1":
-            enemies.append(Stalker(world, fast=False))
+            enemies.append(Stalker(self, fast=False))
         else:
             for i in range(15):
-                enemies.append(Stalker(world, fast=False))
+                enemies.append(Stalker(self, fast=False))
 
             for i in range(3):
-                enemies.append(Stalker(world, fast=True))
+                enemies.append(Stalker(self, fast=True))
 
             for i in range(5):
-                enemies.append(Shooter(world))
+                enemies.append(Shooter(self))
 
         print("[INFO] Fight!")
 
-    def close_game(self):
+    def delete(self):
         self.player.close()
         self.player = None
+        self.pcs = []
 
         for enemy in self.enemies:
             enemy._close()
@@ -220,4 +253,4 @@ class World:
             if layer.startswith("_"):
                 continue
             value = getattr(Layers, layer)
-            self.scene.layers[value].clear
+            self.scene.layers[value].clear()
