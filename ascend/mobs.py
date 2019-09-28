@@ -824,7 +824,7 @@ class Prince(Entity):
             self.hearts.delete()
             self.shape = None
 
-    def die(self, v):
+    def die(self):
         self.level.game.lose("You killed the prince!")
         self.delete()
 
