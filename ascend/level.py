@@ -310,11 +310,13 @@ class Level:
                 spawners = 0,
                 blobs = 0,
                 princes = 0,
-                next = None
+                next = None,
+                flip=False,
                 ):
                 self.level = level
                 self.slow_stalkers = slow_stalkers
                 self.fast_stalkers = fast_stalkers
+                self.flip = flip
                 self.splitters = splitters
                 self.shooters = min(shooters, 10)
                 self.spawners = spawners
@@ -331,7 +333,7 @@ class Level:
                 if self.princes:
                     mid = 1
 
-                generate_level(self.level, mid=mid)
+                generate_level(self.level, mid=mid, flip=self.flip)
 
                 for i in range(self.slow_stalkers):
                     enemies.append(Stalker(level, fast=False))
@@ -381,7 +383,8 @@ class Level:
                     shooters=0 if level_number < 2 else n(0, 2),
                     blobs=0 if level_number < 3 else random.randint(0, 1),
                     spawners=0 if level_number < 5 else random.randint(0, 2),
-                    next="Endless " + str(level_number + 1)
+                    next="Endless " + str(level_number + 1),
+                    flip=level_number % 2,
                     )
         else:
             level_spawners = {
@@ -396,6 +399,7 @@ class Level:
                     shooters=2,
                     # shooters=1,
                     next="3",
+                    flip=True,
                     ),
                 "3": LevelSpawner(self,
                     slow_stalkers=30,
@@ -409,6 +413,7 @@ class Level:
                     shooters=1,
                     splitters=2,
                     next="5",
+                    flip=True,
                     ),
                 "5": LevelSpawner(self,
                     blobs=1,
@@ -421,6 +426,7 @@ class Level:
                     shooters=3,
                     spawners=2,
                     next="7",
+                    flip=True,
                     ),
                 "7": LevelSpawner(self,
                     princes=1,
@@ -451,7 +457,6 @@ class Level:
         assert self.next
         next = Level(self.game, self.next)
         self.game.go_to_level(next)
-
 
     def erase_message(self):
         layers = self.scene.layers
@@ -591,7 +596,7 @@ ENDS = 3
 MIDS = 3
 
 
-def generate_level(level, *, left=None, mid=None, right=None):
+def generate_level(level, *, left=None, mid=None, right=None, flip=False):
     if left is None:
         left = random.randrange(ENDS) + 1
     if mid is None:
@@ -627,14 +632,16 @@ def generate_level(level, *, left=None, mid=None, right=None):
             poly = [pos + Vector2D(x - 165, y - 350).rotated(rotation) for x, y in loop]
             walls.append(Wall(level, poly, visible=False))
 
-
+    p1, p2 = sprites[0][1], sprites[2][1]
+    if flip:
+        p1, p2 = p2, p1
     level.trapdoor = scene.layers[Layers.FLOOR].add_sprite(
         'trapdoor',
-        pos=sprites[0][1]
+        pos=p1
     )
     scene.layers[Layers.FLOOR].add_sprite(
         'stairs',
-        pos=sprites[2][1]
+        pos=p2
     )
     level.build_spatial_hash()
 
