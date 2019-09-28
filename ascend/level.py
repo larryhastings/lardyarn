@@ -504,15 +504,15 @@ class Level:
         or_button_1 = "or button 1 " if control.stick else ""
         game = self.game
         if game.lives == 1:
-            game_over = f"1 Life Remaining"
+            game_over = f"1 Life Remains"
             self.continue_level = True
             game.lives = 0
         elif game.lives:
-            game_over = f"{game.lives} Lives Remaining"
+            game_over = f"{game.lives} Lives Remain"
             self.continue_level = True
             game.lives -= 1
         else:
-            game_over = f"GAME OVER\n"
+            game_over = f"Thy Game Is Over\n"
             self.game.level.next = "title screen"
         self.show_message(
             f"{text}\n"
