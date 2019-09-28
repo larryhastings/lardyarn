@@ -8,15 +8,10 @@ from ascend.sound import init_sound
 
 settings = load_settings()
 
-scene = Scene(
-    title="Ascent - PyWeek 28",
-    width=1024,
-    height=768
-)
-
-game.setup_scene(scene)
-world = game.create_world(scene)
-game.create_players(world)
+game = game.Game(settings)
+game.create_scene()
+world = game.create_world()
+game.create_players()
 world.spawn_mobs(num=20)
 
 
