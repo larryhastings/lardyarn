@@ -445,9 +445,7 @@ class IndividualBlob(BadGuy):
                         min_distance_squared = distance_squared
                         new_leader = blob
                 assert new_leader
-                print("ALL HAIL BLOB NEW LEADER", new_leader)
                 new_leader.init_leader()
-                print("NEW LEADER.leader", new_leader.leader)
                 new_leader.blobs = self.blobs
                 for blob in self.blobs:
                     blob.leader = new_leader
