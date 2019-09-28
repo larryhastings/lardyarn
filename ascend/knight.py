@@ -84,6 +84,9 @@ class Bomb:
         self.sprite = self.scene.layers[0].add_sprite('bomb', pos=pos)
         self.age = 0
 
+    def delete(self):
+        self.sprite.delete()
+
     def update(self, dt):
         self.vel *= self.DRAG ** dt
         self.sprite.pos += self.vel * dt
@@ -135,21 +138,20 @@ class Bomb:
             color=(1, 1, 1, 0),
             on_finished=expl.delete
         )
+        sounds.explosion2.play()
         self.apply_damage()
 
     def apply_damage(self):
         pos = Vector2(*self.pos)
-        survivors = []
-        for mob in self.level.mobs:
+        for mob in self.level.enemies:
             sep = mob.pos - pos
-            dmg = 1e5 / sep.magnitude_squared()
-            if dmg > 30:
+            mag = sep.magnitude
+            dmg = 100 / (1 + mag)
+            if mag < 150:
                 mob.die(sep * 4)
             else:
                 # TODO: apply impulse, rather than affecting position
-                mob.pos += sep.normalize() * dmg
-                survivors.append(mob)
-        self.level.mobs[:] = survivors
+                mob.move_delta(sep.normalized() * dmg)
 
 
 class Knight:
@@ -485,6 +487,18 @@ class Player:
 
         self.zone_triangle = self.previous_zone_triangle = []
 
+        self.bombs = []
+        self.can_bomb = Lockout()
+        self.can_bomb.lock(0.5)
+        self.add_bomb()
+
+    def add_bomb(self):
+        hud = self.level.scene.layers[Layers.HUD]
+        bomb = hud.add_sprite('bomb-icon', pos=(len(self.bombs) * 20 + 10, 10))
+        bomb.scale = 0.1
+        animate(bomb, scale=1.0)
+        self.bombs.append(bomb)
+
     def close(self):
         self.shape.delete()
         self.zone.delete()
@@ -528,6 +542,12 @@ class Player:
         for key, vector in control.movement_keys.items():
             if keyboard[key]:
                 acceleration += vector
+
+        if control.button_press():
+            if self.can_bomb and self.bombs:
+                self.can_bomb.lock(1)
+                self.bombs.pop().delete()
+                self.level.spawn_bomb(self.pos, self.momentum)
 
         if control.use_hat:
             x, y = control.stick.get_hat(0)
