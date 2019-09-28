@@ -244,7 +244,11 @@ class Skeleton:
         self.head.scale = self.body.scale = self.bob
         self.body.angle = angle_to_target + 0.1 * np.sin(self.t * 50)
 
+    deleted = False
     def delete(self):
+        if self.deleted:
+            return
+        self.deleted = True
         clock.unschedule(self.update)
         self.head.delete()
         self.body.delete()
