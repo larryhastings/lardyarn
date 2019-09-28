@@ -110,7 +110,8 @@ class Game:
     def new(self):
         print("[INFO] New game.")
 
-        self.delete_level()
+        self.delete()
+
         self.paused = False
 
         self.init_scene()
@@ -120,8 +121,8 @@ class Game:
         return self.level
 
     def delete(self):
-        self.delete_level()
         self.clear_scene()
+        self.delete_level()
 
     def delete_level(self):
         if self.level:
