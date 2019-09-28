@@ -7,7 +7,7 @@ import pkgutil
 from itertools import product
 from pygame import Rect
 
-from wasabi2d import Vector2, animate, sounds
+from wasabi2d import Vector2, animate, sounds, music
 from pygame import joystick
 
 from .knight import Knight, Bomb, Player
@@ -637,11 +637,13 @@ def generate_level(level, *, left=None, mid=None, right=None, flip=False):
         'trapdoor',
         pos=p1
     )
-    level.player.pos = Vector2D(trapdoor.pos)
-    level.player.shape.pos = level.player.pos
+    if level.player:
+        level.player.pos = Vector2D(trapdoor.pos)
+        level.player.shape.pos = level.player.pos
     scene.layers[Layers.FLOOR].add_sprite(
         'stairs',
         pos=p2
     )
     level.build_spatial_hash()
+    music.play('music1')
 
