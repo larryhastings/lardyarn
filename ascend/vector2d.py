@@ -24,7 +24,9 @@ def normalize_angle(theta):
 def repr_float(f):
     return f"{f:3.4f}"
 
+
 class Vector2D:
+    __slots__ = 'x', 'y', '__magnitude', '__magnitude_squared'
 
     def __init__(self, x=None, y=None):
         if y is None:
@@ -40,8 +42,9 @@ class Vector2D:
                 x = y = 0
             else:
                 x, y = x
-        self.__dict__['x'] = x
-        self.__dict__['y'] = y
+        self.__magnitude = self.__magnitude_squared = None
+        object.__setattr__(self, 'x', x)
+        object.__setattr__(self, 'y', y)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} ({repr_float(self.x)}, {repr_float(self.y)})>"
@@ -52,9 +55,6 @@ class Vector2D:
         if index == 1:
             return self.y
         raise IndexError(f"Index {index} out of range for {self}")
-
-    def __setattr__(self, name, value):
-        raise AttributeError(f"{self.__class__.__name__} objects are immutable")
 
     def __len__(self):
         return 2
@@ -122,18 +122,18 @@ class Vector2D:
 
     @property
     def magnitude(self):
-        magnitude = self.__dict__.get('magnitude')
+        magnitude = self.__magnitude
         if magnitude is None:
             magnitude = sqrt(self.magnitude_squared)
-            self.__dict__['magnitude'] = magnitude
+            self.__magnitude = magnitude
         return magnitude
 
     @property
     def magnitude_squared(self):
-        magnitude_squared = self.__dict__.get('magnitude_squared')
+        magnitude_squared = self.__magnitude_squared
         if magnitude_squared is None:
-            magnitude_squared = (self.x*self.x) + (self.y*self.y)
-            self.__dict__['magnitude_squared'] = magnitude_squared
+            magnitude_squared = (self.x * self.x) + (self.y * self.y)
+            self.__magnitude_squared = magnitude_squared
         return magnitude_squared
 
     def normalized(self):
@@ -147,7 +147,13 @@ class Vector2D:
         polar2 = Polar2D(polar.r, polar.theta + theta)
         return self.__class__(polar2)
 
+    def angle(self):
+        return atan2(self.y, self.x)
+
+
 class Polar2D:
+    __slots__ = 'r', 'theta'
+
     def __init__(self, r=None, theta=None):
         if theta is None:
             if isinstance(r, Vector2D):
@@ -160,8 +166,8 @@ class Polar2D:
                 r = theta = 0
             else:
                 r, theta = r
-        self.__dict__['r'] = r
-        self.__dict__['theta'] = theta
+        object.__setattr__(self, 'r', r)
+        object.__setattr__(self, 'theta', theta)
 
     def __repr__(self):
         return f"<{self.__class__.__name__} ({repr_float(self.r)}, {repr_float(self.theta)})>"
@@ -185,9 +191,9 @@ class Polar2D:
 
     def __neg__(self):
         if self.theta > 0:
-            theta = self.theta - math.pi
+            theta = self.theta - pi
         else:
-            theta = self.theta + math.pi
+            theta = self.theta + pi
         return self.__class__(self.r, theta)
 
     def __add__(self, other):

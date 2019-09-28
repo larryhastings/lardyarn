@@ -172,7 +172,7 @@ class Skeleton:
             vel=vel,
             vel_spread=80,
             spin_spread=1,
-            size=8,
+            size=7,
         )
 
 
@@ -576,7 +576,6 @@ class Shot(BadGuy):
         self.shape.hit()
 
 
-
 class Shooter(BadGuy):
     min_time = 0.5
     max_time = 1.5
@@ -586,14 +585,16 @@ class Shooter(BadGuy):
 
     def __init__(self, level):
         super().__init__(level)
-        self.shape = level.scene.layers[Layers.ENTITIES].add_circle(
-            radius=self.radius,
-            color=(1/2, 0, 1),
-            )
+        self.shape = level.scene.layers[Layers.ENTITIES].add_sprite(
+            'skeleton-head',
+            color=(0.7, 0.6, 0.6, 1),
+        )
+        self.shape.scale = 1.3
         self.random_placement()
         self.init_spot()
 
         self._next_shot_time()
+        clock.each_tick(self.smoke)
 
     def _next_shot_time(self):
         self.next_shot_time = self.level.game.time + self.min_time + (random.random() * (self.max_time - self.min_time))
@@ -604,9 +605,36 @@ class Shooter(BadGuy):
         self.level.enemies.append(shot)
         self._next_shot_time()
 
+    SMOKE_RATE = 100
+
+    def smoke(self, dt):
+        self.level.scene.smoke.emit(
+            num=dt * self.SMOKE_RATE,
+            pos=Vector2D(self.shape.pos) - Polar2D(5, self.shape.angle),
+            vel_spread=30,
+            spin_spread=1,
+            size=8,
+            size_spread=3,
+            angle_spread=3,
+            color='#000000ff'
+        )
+
+    def close(self):
+        self.level.scene.skulls.emit(
+            1,
+            pos=self.pos,
+            vel_spread=80,
+            spin_spread=1,
+            size=8,
+        )
+        clock.unschedule(self.smoke)
+        super().close()
+
     def update(self, dt):
         if self.dead:
             return
+        player = self.level.player
+        self.shape.angle = Vector2D(player.pos - self.shape.pos).angle()
         self.move_towards_spot()
         if self.level.game.time >= self.next_shot_time:
             self.shoot()
