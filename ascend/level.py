@@ -17,6 +17,7 @@ from .control import JoyController, KeyboardController
 from . import control
 from .constants import Layers
 
+
 def line_segment_intersects_circle(start, along, center, radius):
     Q = center                  # Centre of circle
     r = radius                  # Radius of circle
@@ -150,11 +151,10 @@ class Level:
         effect.
 
         """
-        actors = self.pcs + self.mobs
-        for i, mob1 in enumerate(actors):
+        for i, mob1 in enumerate(self.enemies):
             p1 = mob1.pos
             r1 = mob1.radius
-            for mob2 in actors[i + 1:]:
+            for mob2 in self.enemies[i + 1:]:
                 r = r1 + mob2.radius
                 p2 = mob2.pos
                 sep = Vector2(*p2 - p1)
@@ -195,6 +195,8 @@ class Level:
         if not self.enemies:
             self.player.on_win()
         else:
+            # TODO: decide we allow enemies to overlap
+            #self.resolve_collisions()
             for enemy in self.enemies:
                 enemy.update(dt)
 
@@ -221,7 +223,6 @@ class Level:
 
         # and a wall in the middle to play with
         walls.append(Wall(self, Vector2D(600, 200), Vector2D(800, 400)))
-
 
         if len(sys.argv) > 1 and sys.argv[1] == "1":
             enemies.append(Blob(self))

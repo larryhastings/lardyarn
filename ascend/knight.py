@@ -575,6 +575,7 @@ class Player:
         else:
             self.zone_angle += min(dt * da * TURN, delta)
         self.zone.angle = self.zone_angle = normalize_angle(self.zone_angle)
+        self.shape.angle = self.zone_angle
 
         starting_pos = self.pos
         movement_this_frame = self.momentum * dt
@@ -647,7 +648,6 @@ class Player:
         self.previous_zone_triangle = self.zone_triangle
         self.zone_triangle = [v1, v2, v3]
         # print(f"player pos {self.pos} :: zone angle {self.zone_angle} triangle {self.zone_triangle}")
-        self.shape.angle = self.zone_angle
         self.shape.update(dt)
 
     def on_collision_zone(self, other):
