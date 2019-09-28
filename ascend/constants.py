@@ -6,6 +6,7 @@ class CollisionType(enum.IntEnum):
     PLAYER = 2
     ZONE = 3
 
+
 class Layers(enum.IntEnum):
     DEBRIS = 0
     WALL = 1
@@ -14,5 +15,6 @@ class Layers(enum.IntEnum):
     ENTITIES = 4
     BULLETS = 5
     ZONE = 6
-    TEXT = 7
+    TEXTBG = 8
+    TEXT = 9
 

@@ -492,21 +492,33 @@ class Player:
 
         self.zone_triangle = self.previous_zone_triangle = []
 
-        self.message = scene.layers[Layers.TEXT].add_label(
-            text=".",
-            fontsize=44.0,
-            align="center",
+    def show_message(self, text):
+        scene = self.level.scene
+        screen_center = Vector2D(scene.width, scene.height) * 0.5
+        fill = scene.layers[Layers.TEXTBG].add_rect(
+            width=scene.width + 100,
+            height=scene.height + 100,
             pos=screen_center,
+            color=(0, 0, 0, 0),
         )
-        self.message.text = ""
+        animate(fill, duration=0.1, color=(0, 0, 0, 0.33))
+
+        lines = text.count('\n')
+        fontsize = 48
+        pos = screen_center - Vector2(0, 1.3 * fontsize) * (lines - 0.5) * 0.5
+        scene.layers[Layers.TEXT].add_label(
+            text=text,
+            fontsize=fontsize,
+            align="center",
+            pos=pos,
+            font='magic_medieval',
+        )
 
     def close(self):
         self.shape.delete()
         self.zone.delete()
-        if self.message:
-            # del self.message
-            # self.message.delete()
-            self.message.text = ""
+        for layer in (Layers.TEXT, Layers.TEXTBG):
+            self.level.scene.layers[layer].clear()
 
     def compute_collision_with_bad_guy(self, bad_guy):
         if self.dead:
@@ -670,7 +682,12 @@ class Player:
         # self.shape.delete()
         # self.shield.delete()
 
-        self.message.text = "YOU DIED\nGAME OVER\npress Space or joystick button to play again\npress Escape to quit"
+        self.show_message(
+            "YOU DIED\n"
+            "GAME OVER\n"
+            "Press Space or joystick button to play again\n"
+            "Press Escape to quit"
+        )
 
     def on_win(self):
         global pause
@@ -681,6 +698,10 @@ class Player:
         # self.shape.delete()
         # self.shield.delete()
 
-        self.message.text = "A WINNER IS YOU!\ngame over\npress Space or joystick button to play again\npress Escape to quit"
+        self.show_message(
+            "A WINNER IS YOU!\n"
+            "Press Space or joystick button to play again\n"
+            "Press Escape to quit"
+        )
         sounds.game_won.play()
 

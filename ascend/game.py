@@ -45,7 +45,7 @@ class Game:
     def init_scene(self):
         scene = self.scene
 
-        scene.layers[Layers.WALL].set_effect(
+        scene.layers[Layers.LOWER_EFFECTS].set_effect(
             'dropshadow',
             radius=2,
             offset=(1.5, 1.5)
@@ -55,7 +55,12 @@ class Game:
             radius=3,
             offset=(3, 3)
         )
-        scene.layers[Layers.LOWER_EFFECTS].set_effect(
+        scene.layers[Layers.TEXT].set_effect(
+            'dropshadow',
+            radius=3,
+            offset=(3, 3)
+        )
+        scene.layers[Layers.ENTITIES].set_effect(
             'bloom',
             radius=10,
         )
@@ -105,7 +110,6 @@ class Game:
                 continue
             value = getattr(Layers, layer)
             self.scene.layers[value].clear()
-
 
     def new(self):
         print("[INFO] New game.")
