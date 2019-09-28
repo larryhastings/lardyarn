@@ -20,7 +20,7 @@ from .knight import KnightController
 from .control import JoyController, KeyboardController
 
 from . import control
-from .constants import Layers
+from .constants import Layers, CollisionType
 
 
 def line_segment_intersects_circle(start, along, center, radius):
@@ -156,19 +156,43 @@ class Level:
         effect.
 
         """
+        player = self.player
+        for mob in self.enemies[:]:
+            collision = player.compute_collision_with_bad_guy(mob)
+
+            if collision == CollisionType.ZONE:
+                player.on_collision_zone(mob)
+                mob.on_collide_zone()
+            elif collision == CollisionType.PLAYER:
+                player.on_collision_body(mob)
+                mob.on_collide_player()
+            else:
+                penetration_vector = self.detect_wall_collisions(mob)
+                if penetration_vector:
+                    if mob.die_on_any_collision:
+                        mob.close()
+                        return
+                    mob.pos -= penetration_vector
+                    mob.shape.pos = mob.pos
+
         for i, mob1 in enumerate(self.enemies):
             p1 = mob1.pos
             r1 = mob1.radius
             for mob2 in self.enemies[i + 1:]:
-                r = r1 + mob2.radius
+                r2 = mob2.radius
+                r = r1 + r2
                 p2 = mob2.pos
                 sep = Vector2(*p2 - p1)
                 if sep.magnitude_squared() < r * r:
                     mag = sep.magnitude()
                     overlap = r - mag
-                    sep.normalize_ip()
-                    mob1.pos = p1 - sep * overlap * 0.5
-                    mob2.pos = p2 + sep * overlap * 0.5
+                    if mag:
+                        sep.normalize_ip()
+                    else:
+                        sep = Vector2(0, 1)
+                    frac = (r1 * r1) / (r1 * r1 + r2 * r2)
+                    mob1.pos = p1 - sep * overlap * (1.0 - frac)
+                    mob2.pos = p2 + sep * overlap * frac
 
     def build_spatial_hash(self):
         self.wall_hash = {}
@@ -228,7 +252,7 @@ class Level:
             self.player.on_win()
         else:
             # TODO: decide we allow enemies to overlap
-            #self.resolve_collisions()
+            self.resolve_collisions()
             for enemy in self.enemies:
                 enemy.update(dt)
 
