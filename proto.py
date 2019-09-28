@@ -1,95 +1,58 @@
 #!/usr/bin/env python3
-
-print("[INFO] Importing packages...")
-
-
 import enum
 import sys
 import math
 import random
-import os.path
+from pathlib import Path
 
-
-if hasattr(os, "getwindowsversion"):
-    rcfile_basename = "lardyarn.txt"
-else:
-    rcfile_basename = ".lardyarnrc"
-
-rcfile_schema = {
-    'mixer devicename': (None, str),
-    'joystick': 0,
-    'hat': 0,
-    'move x axis': 0,
-    'move y axis': 1,
-}
-
-settings = {}
-for name, value in rcfile_schema.items():
-    if isinstance(value, tuple):
-        value, _ = value
-    settings[name] = value
-
-
-rcfile_path = os.path.expanduser("~/" + rcfile_basename)
-if os.path.isfile(rcfile_path):
-    with open(rcfile_path, "rt") as f:
-        for line in f.read().strip().split("\n"):
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            name, equals, value = line.partition("=")
-            if not equals:
-                sys.exit("Invalid rcfile line: " + repr(line))
-            name = name.strip()
-            value = value.strip()
-            default = rcfile_schema.get(name)
-            if default is None:
-                sys.exit("Invalid value specified in rcfile: " + repr(name))
-            if isinstance(default, tuple):
-                default, defaulttype = default
-            else:
-                defaulttype = type(default)
-            settings[name] = defaulttype(value)
-
-
-stdout = sys.stdout
-sys.stdout = None
+import ascend
+from ascend.settings import load_settings
 import pygame
-sys.stdout = stdout
 
-print("[INFO] Initializing sound...")
-
-devicename=settings.get('mixer devicename')
-pygame.mixer.pre_init(devicename=devicename)
-pygame.init()
-try:
-    pygame.mixer.init()
-except pygame.error as e:
-    print("[WARN] Couldn't get exclusive access to sound device!  Sound disabled.")
-    print("[WARN]", e)
-    # call pre-init again with no devicename
-    # this will reset back to the default
-    # which ALSO won't work, but pygame works better this way
-    pygame.mixer.pre_init(devicename=None)
-    pygame.mixer.init()
-
-print("[INFO] Finishing imports...")
-
-import wasabi2d
-from wasabi2d import Scene, run, event, clock, keys, sounds
+from wasabi2d import Scene, run, event, keys, sounds
 import pygame.mouse
 from pygame import joystick
 from triangle_intersect import polygon_collision
 from vector2d import Vector2D, Polar2D
 
+from ascend.knight import Knight
+from ascend import game
 
+settings = load_settings()
+
+
+def init_sound(devicename):
+    print("[INFO] Initializing sound...")
+
+    if pygame.mixer.get_init():
+        pygame.mixer.quit()
+    pygame.mixer.pre_init(devicename=devicename)
+    pygame.init()
+    try:
+        pygame.mixer.init()
+    except pygame.error as e:
+        print(
+            "[WARN] Couldn't get exclusive access to sound device! "
+            "Sound disabled."
+        )
+        print("[WARN]", e)
+        # call pre-init again with no devicename
+        # this will reset back to the default
+        # which ALSO won't work, but pygame works better this way
+        pygame.mixer.pre_init(devicename=None)
+        pygame.mixer.init()
+
+
+init_sound(devicename=settings.get('mixer devicename'))
 print("[INFO] Initializing runtime...")
+
 
 class CollisionType(enum.IntEnum):
     NO_COLLISION = 0
     COLLISION_WITH_WALL = 1
     COLLISION_WITH_PLAYER = 2
     COLLISION_WITH_ZONE = 3
+
 
 class Layers(enum.IntEnum):
     WALL_LAYER = 0
@@ -119,6 +82,7 @@ def normalize_angle(theta):
 
 max_speed_measured = 691.0
 
+
 class Player:
     dead = False
     zone_angle = 0
@@ -127,7 +91,7 @@ class Player:
     # radius = sword_radius
     # shield_arc = math.tau / 4 # how far the shield extends
     # zone_angle = 0
-    zone_arc = math.tau / 4 # how far the shield extends
+    zone_arc = math.tau / 4  # how far the shield extends
     zone_radius = 15
     outer_radius = body_radius + zone_radius
     radius = outer_radius
@@ -147,11 +111,8 @@ class Player:
 
     def __init__(self):
         self.pos = Vector2D(screen_center)
-        self.shape = scene.layers[Layers.ENTITIES_LAYER].add_circle(
-            radius=self.body_radius,
-            pos=self.pos,
-            color=(0, 1/2, 0),
-            )
+        self.shape = Knight(world)
+        self.shape.knight.pos = self.pos
 
         self.momentum = Vector2D()
 
@@ -177,18 +138,23 @@ class Player:
             theta += step
 
         self.zone_layer = scene.layers[Layers.ZONE_LAYER]
-        self.zone = self.zone_layer.add_polygon(vertices, fill=True, color=self.normal_zone_color)
+        self.zone = self.zone_layer.add_polygon(
+            vertices,
+            fill=True,
+            color=self.normal_zone_color
+        )
         self.zone_center = self.pos + Vector2D(self.zone_center_distance, 0)
         self.zone_layer_active = False
         self.zone_layer.visible = False
 
         self.message = scene.layers[Layers.TEXT_LAYER].add_label(
-            text = ".",
-            fontsize = 44.0,
-            align = "center",
-            pos = screen_center,
-            )
+            text=".",
+            fontsize=44.0,
+            align="center",
+            pos=screen_center,
+        )
         self.message.text = ""
+        print("DIR OF LABEL", dir(self.message))
 
     def close(self):
         self.shape.delete()
@@ -202,7 +168,7 @@ class Player:
         if self.dead:
             return CollisionType.NO_COLLISION
 
-        distance_vector     = self.pos - bad_guy.pos
+        distance_vector = self.pos - bad_guy.pos
         distance_squared = distance_vector.magnitude_squared
         intersect_outer_radius = distance_squared <= bad_guy.outer_collision_distance_squared
         if not intersect_outer_radius:
@@ -324,7 +290,8 @@ class Player:
         v3 = v1 + v3delta
         self.zone_triangle = [v1, v2, v3]
         # print(f"player pos {self.pos} :: zone angle {self.zone_angle} triangle {self.zone_triangle}")
-
+        self.shape.angle = self.zone_angle
+        self.shape.update(dt)
 
     def on_collision_zone(self, other):
         """
@@ -335,14 +302,12 @@ class Player:
         self.zone.color = self.flashing_zone_color
         sounds.zap.play()
 
-
     def on_collision_body(self, other):
         """
         self and body are within body radius. they're colliding, but how?
         Returns enum indicating type of collision.
         """
         self.on_death(other)
-
 
     def on_death(self, other):
         global pause
@@ -366,7 +331,6 @@ class Player:
 
         self.message.text = "A WINNER IS YOU!\ngame over\npress Space or joystick button to play again\npress Escape to quit"
         sounds.game_won.play()
-
 
 
 movement_keys = {}
@@ -415,7 +379,7 @@ print("[INFO] use hat?", use_hat)
 # tweaked faster values
 acceleration_scale = 1800
 air_resistance = 0.07
-max_speed = 700 # max observed speed is 691 anyway
+max_speed = 700  # max observed speed is 691 anyway
 
 
 time = 0
@@ -423,6 +387,7 @@ frame = 0
 
 enemies = []
 walls = []
+
 
 @event
 def update(dt, keyboard):
@@ -503,6 +468,7 @@ def detect_wall_collisions(entity):
     for collision in collisions[1:]:
         cumulative_vector += collision
     return cumulative_vector
+
 
 class Wall:
     # remember that in Wasabi2d (0, 0) is in the upper-left.
@@ -677,15 +643,14 @@ class Stalker(BadGuy):
             delta = delta.scaled(self.speed)
         self.move_to(self.pos + delta)
 
-
     def __init__(self, fast):
         super().__init__()
         if fast:
             self.speed = 1.75
-            color = color=(1, 0.75, 0)
+            color = (1, 0.75, 0)
         else:
             self.speed = 0.8
-            color = color=(0.8, 0.3, 0.3)
+            color = (0.8, 0.3, 0.3)
 
         self.shape = scene.layers[Layers.ENTITIES_LAYER].add_star(
             outer_radius=self.radius,
@@ -822,10 +787,21 @@ print("[INFO] Creating scene...")
 # |                                |
 # |                                |
 # +----------------------(1024, 768)
-scene = Scene(1024, 768)
+
+scene = Scene(
+    1024,
+    768,
+    title="Ascend",
+    rootdir=Path(ascend.__file__).parent
+)
+game.setup_scene(scene)
+world = game.create_world(scene)
+
+
 pause = False
 
 screen_center = Vector2D(scene.width / 2, scene.height / 2)
+
 
 def new_game():
     print("[INFO] Spawning player and enemies...")
@@ -869,6 +845,7 @@ def new_game():
     print("player location", player.pos)
     print("[INFO] Fight!")
 
+
 def close_game():
     global player
     player.close()
@@ -890,8 +867,5 @@ def close_game():
         scene.layers[value].clear
 
 
-
-
 new_game()
-
 run()  # keep this at the end of the file

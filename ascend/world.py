@@ -2,8 +2,8 @@ import numpy as np
 import math
 from wasabi2d import Vector2
 
-from knight import Knight, Bomb
-from mobs import Skeleton, Mage
+from .knight import Knight, Bomb
+from .mobs import Skeleton, Mage
 
 
 def line_segment_intersects_circle(start, along, center, radius):
