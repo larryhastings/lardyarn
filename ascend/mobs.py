@@ -226,7 +226,7 @@ class Skeleton:
             angle=angle
         )
 
-        self.target = random.choice(level.pcs) if level.pcs else None
+        # self.target = random.choice(level.pcs) if level.pcs else None
         self.t = 0
         self.bob = 1.0
         self.last_pos = Vector2D()
@@ -245,10 +245,12 @@ class Skeleton:
         self.head.pos = self.body.pos = v
 
     def update(self, dt):
-        to_target = Vector2(*self.target.pos - self.head.pos)
-        dist, angle_deg = to_target.as_polar()
-        angle_to_target = math.radians(angle_deg)
-        self.head.angle = angle_to_target
+        target = self.level.player
+        if target:
+            to_target = Vector2(*target.pos - self.head.pos)
+            dist, angle_deg = to_target.as_polar()
+            angle_to_target = math.radians(angle_deg)
+            self.head.angle = angle_to_target
 
         cur_pos = Vector2D(self.head.pos)
         dist = (cur_pos - self.last_pos).magnitude
@@ -264,12 +266,11 @@ class Skeleton:
 
     deleted = False
     def delete(self):
-        if self.deleted:
-            return
-        self.deleted = True
-        clock.unschedule(self.update)
-        self.head.delete()
-        self.body.delete()
+        if not self.deleted:
+            self.deleted = True
+            clock.unschedule(self.update)
+            self.head.delete()
+            self.body.delete()
 
     def die(self, vel=(0, 0)):
         self.delete()
@@ -303,7 +304,11 @@ class Mage(Skeleton):
     def fire(self):
         """Fire a magic missile at the player."""
         pos = self.pos
-        aim = Vector2(*self.target.pos) - pos
+        # aim = Vector2(*self.target.pos) - pos
+        target = self.level.player
+        if not target:
+            return
+        aim = Vector2(*target.pos) - pos
 
         self.level.objects.append(
             TimedMagicMissile(
@@ -523,10 +528,13 @@ class Blobby:
             scale_y=y,
         )
 
+    deleted = False
     def delete(self):
-        self.anim.stop()
-        clock.unschedule(self.bounce)
-        self.shape.delete()
+        if not self.deleted:
+            self.deleted = True
+            self.anim.stop()
+            clock.unschedule(self.bounce)
+            self.shape.delete()
 
     def die(self, vel=Vector2D()):
         self.scene.smoke.emit(
