@@ -261,6 +261,9 @@ class Level:
         if self.player:
             self.player.update(dt, keyboard)
 
+        for o in self.objects[:]:
+            o.update(dt)
+
         if not self.enemies:
             self.player.on_win()
         else:
@@ -275,6 +278,7 @@ class Level:
         scene = self.scene
 
         self.new_player()
+        self.objects.clear()
 
         enemies = self.enemies
         walls = self.walls
@@ -390,6 +394,9 @@ class Level:
         for enemy in self.enemies:
             enemy._close()
         self.enemies.clear()
+
+        for o in self.objects[:]:
+            o.delete()
 
         for wall in self.walls:
             wall._close()

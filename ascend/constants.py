@@ -1,5 +1,6 @@
 import enum
 
+
 class CollisionType(enum.IntEnum):
     NONE = 0
     WALL = 1
@@ -17,6 +18,7 @@ class Layers(enum.IntEnum):
     UPPER_ENTITIES = 5
     BULLETS = 6
     ZONE = 7
-    TEXTBG = 8
-    TEXT = 9
+    HUD = 8
+    TEXTBG = 9
+    TEXT = 10
 

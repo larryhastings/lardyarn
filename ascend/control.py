@@ -62,6 +62,14 @@ movement_keys = {}
 stick = None
 use_left_stick = use_hat = False
 
+
+def button_press():
+    if stick:
+        return stick.get_button(0)
+    else:
+        return keyboard.space
+
+
 def init_controls(settings):
     global movement_keys
     global stick

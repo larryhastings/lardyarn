@@ -95,6 +95,46 @@ class TimedMagicMissile(MagicMissile):
             return
 
 
+class BombPowerup:
+    def __init__(self, level: 'ascend.level.Level', pos):
+        self.level = level
+        scene = level.scene
+        self.sprite = scene.layers[Layers.LOWER_EFFECTS].add_sprite(
+            'bomb-up',
+            pos=pos
+        )
+        self.vel = Vector2D(
+            random.uniform(-100, 100),
+            random.uniform(-100, 100),
+        )
+        self.collectable = False
+        level.objects.append(self)
+        clock.schedule(self.blink_on, 0.5)
+
+    def blink_on(self):
+        self.collectable = True
+        self.sprite.color = (2, 2, 2, 1)
+        clock.schedule(self.blink_off, 0.1)
+
+    def blink_off(self):
+        self.sprite.color = 'white'
+        clock.schedule(self.blink_on, 0.5)
+
+    def update(self, dt):
+        self.vel *= 0.2 ** dt
+        self.sprite.pos += self.vel * dt
+
+        player = self.level.player
+        if self.collectable and (player.pos - self.sprite.pos).magnitude < 30:
+            self.delete()
+            player.add_bomb()
+
+    def delete(self):
+        self.sprite.delete()
+        self.sprite = None
+        self.level.objects.remove(self)
+
+
 class Skeleton:
     radius = 12
 
@@ -177,6 +217,8 @@ class Skeleton:
             spin_spread=1,
             size=7,
         )
+        if random.randrange(10) == 0:
+            BombPowerup(self.level, self.pos)
 
 
 class Mage(Skeleton):
@@ -326,6 +368,9 @@ class BadGuy(Entity):
     #     self.push_away_from_player()
 
     def on_collide_zone(self):
+        self.on_death()
+
+    def die(self, v):
         self.on_death()
 
     def on_death(self):
