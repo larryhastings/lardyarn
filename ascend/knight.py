@@ -145,8 +145,9 @@ class Bomb:
         pos = Vector2(*self.pos)
         for mob in self.level.enemies:
             sep = mob.pos - pos
-            dmg = 3e5 / (1 + sep.magnitude_squared)
-            if dmg > 30:
+            mag = sep.magnitude
+            dmg = 100 / (1 + mag)
+            if mag < 150:
                 mob.die(sep * 4)
             else:
                 # TODO: apply impulse, rather than affecting position
