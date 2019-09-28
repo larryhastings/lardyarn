@@ -145,10 +145,12 @@ class Gib:
         for _ in range(num):
             cls(level, pos, vel)
 
+    radius = 4
+
     def __init__(self, level: 'ascend.level.Level', pos, vel=Vector2D()):
+        self.scene = level.scene
         self.level = level
         self.level.objects.append(self)
-        self.scene = level.scene
         self.sprite = self.scene.layers[Layers.LOWER_EFFECTS].add_sprite(
             'smoke',
             pos=pos,
@@ -160,6 +162,15 @@ class Gib:
             np.random.normal(0, 100),
         ) + vel
         self.age = 0
+        clock.each_tick(self.update)
+
+    @property
+    def pos(self):
+        return self.sprite.pos
+
+    @pos.setter
+    def pos(self, v):
+        self.sprite.pos = v
 
     BLOOD_RATE = 0.1
 
@@ -185,7 +196,7 @@ class Gib:
         )
 
     def delete(self):
-        self.level.objects.remove(self)
+        clock.unschedule(self.update)
         self.sprite.delete()
         self.sprite = None
 
