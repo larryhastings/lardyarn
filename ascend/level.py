@@ -485,7 +485,9 @@ class Level:
         self.game.paused = True
         or_button_1 = "or button 1 " if control.stick else ""
         self.show_message(
-            "YOU WIN!\n"
+            "Thou has saved the prince!\n"
+            "Congratulations, thou hast won!\n"
+            "\n"
             f"Press Space {or_button_1}to continue\n"
         )
         sounds.game_won.play()
@@ -496,6 +498,7 @@ class Level:
         self.show_message(
             "Level Complete\n"
             f"Next up: Level {self.next}\n"
+            "\n"
             f"Press Space {or_button_1}to continue\n"
         )
         sounds.game_won.play()
@@ -512,11 +515,12 @@ class Level:
             self.continue_level = True
             game.lives -= 1
         else:
-            game_over = f"Thy Game Is Over\n"
+            game_over = f"Thy Game Is Over.\n"
             self.game.level.next = "title screen"
         self.show_message(
             f"{text}\n"
             f"{game_over}\n"
+            "\n"
             f"Press Space {or_button_1}to continue\n"
             "Press Escape to quit"
         )
