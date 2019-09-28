@@ -154,8 +154,8 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:zoom="1"
-     inkscape:cx="571.73121"
-     inkscape:cy="235.40474"
+     inkscape:cx="902.87093"
+     inkscape:cy="509.9935"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -996,6 +996,109 @@
          cx="716.73541"
          id="path5532"
          style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:0.098;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+    </g>
+    <g
+       id="g5664"
+       inkscape:export-filename="/home/mauve/dev/lardyarn/game/ascend/images/prince.png"
+       inkscape:export-xdpi="30"
+       inkscape:export-ydpi="30">
+      <g
+         transform="matrix(0,1,-1,0,1145.7997,341.4872)"
+         inkscape:export-ydpi="30"
+         inkscape:export-xdpi="30"
+         inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/knight.png"
+         id="g4202-5">
+        <rect
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#c9c9c9;fill-opacity:1;fill-rule:evenodd;stroke:#9e9e9e;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+           id="rect4164-3"
+           width="52.25"
+           height="22.75"
+           x="155.25"
+           y="376.86221" />
+        <path
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#c9c9c9;fill-opacity:1;fill-rule:evenodd;stroke:#9e9e9e;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+           id="path4146-5"
+           sodipodi:type="arc"
+           sodipodi:cx="203"
+           sodipodi:cy="388.61221"
+           sodipodi:rx="13.75"
+           sodipodi:ry="13.4375"
+           sodipodi:start="4.712389"
+           sodipodi:end="1.5707963"
+           d="m 203,375.17471 a 13.75,13.4375 0 0 1 13.75,13.4375 13.75,13.4375 0 0 1 -13.75,13.4375 l 0,-13.4375 z" />
+        <path
+           d="m -160.75,375.17471 a 13.75,13.4375 0 0 1 13.75,13.4375 13.75,13.4375 0 0 1 -13.75,13.4375 l 0,-13.4375 z"
+           sodipodi:end="1.5707963"
+           sodipodi:start="4.712389"
+           sodipodi:ry="13.4375"
+           sodipodi:rx="13.75"
+           sodipodi:cy="388.61221"
+           sodipodi:cx="-160.75"
+           sodipodi:type="arc"
+           id="path4180-6"
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#c9c9c9;fill-opacity:1;fill-rule:evenodd;stroke:#9e9e9e;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+           transform="scale(-1,1)" />
+      </g>
+      <g
+         style="fill:#d1b5a2;fill-opacity:1"
+         inkscape:export-ydpi="30"
+         inkscape:export-xdpi="30"
+         inkscape:export-filename="/home/mauve/dev/lardyarn/game/images/knight-head.png"
+         id="g4405-2"
+         transform="matrix(0,1,-1,0,1144.3579,342.69493)">
+        <path
+           sodipodi:nodetypes="sssss"
+           inkscape:connector-curvature="0"
+           id="path4136-9"
+           d="m 195.93299,387.04597 c 0,7.96683 -6.44193,14.42522 -14.38846,14.42522 -7.94653,0 -14.38846,-6.45839 -14.38846,-14.42522 0,-7.96683 9.0441,-17.80134 14.38846,-17.80134 5.95664,0 14.38846,9.83451 14.38846,17.80134 z"
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#d1b5a2;fill-opacity:1;fill-rule:evenodd;stroke:#aa7755;stroke-width:1.99999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+      </g>
+      <path
+         style="fill:#ceb75b;fill-opacity:1;fill-rule:evenodd;stroke:#aa8800;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         d="m 752.28187,534.37655 c 6.67244,-9.04087 5.1644,-14.765 1.01609,-18.9286 -4.14833,-4.16359 -7.30983,-14.17028 -7.30983,-14.17028 0,0 -8.6482,11.88965 -7.99936,15.3019 0.64884,3.41225 1.00889,18.54514 7.13299,19.85997 6.12411,1.31484 7.16011,-2.06299 7.16011,-2.06299 z"
+         id="path5662"
+         inkscape:connector-curvature="0" />
+      <path
+         inkscape:transform-center-y="3.2181709"
+         inkscape:transform-center-x="-2.4746855"
+         inkscape:connector-curvature="0"
+         id="path5660"
+         d="m 757.35927,537.61221 c 9.87863,-7.2397 10.86382,-14.17594 8.77559,-20.47341 -2.08825,-6.29746 -0.84878,-18.63862 -0.84878,-18.63862 0,0 -12.8749,9.5729 -13.6921,13.60506 -0.81719,4.03218 -6.75538,20.88118 -1.67086,24.84545 5.08452,3.96426 7.43615,0.66152 7.43615,0.66152 z"
+         style="fill:#ceb75b;fill-opacity:1;fill-rule:evenodd;stroke:#aa8800;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <g
+       id="g5683"
+       inkscape:export-filename="/home/mauve/dev/lardyarn/game/ascend/images/heart.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90"
+       transform="matrix(0.91428571,0,0,0.96829294,74.828571,16.089966)">
+      <path
+         sodipodi:nodetypes="ccccccc"
+         inkscape:connector-curvature="0"
+         id="path5674"
+         d="m 896,441.36133 c -12.70255,0 -23,10.29745 -23,23 3.81593,18.43639 26.07407,27.10325 35.00977,43.0957 7.27141,-16.04178 34.5928,-30.01981 34.99023,-43.0957 0,-12.70255 -10.29745,-23 -23,-23 -4.24073,0.007 -8.39709,1.18537 -12.00977,3.40625 -3.60702,-2.21742 -7.75615,-3.39613 -11.99023,-3.40625 z"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#922525;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+      <ellipse
+         transform="matrix(1,0,-0.43796942,0.89898987,0,0)"
+         ry="10.845506"
+         rx="9.75"
+         cy="504.5799"
+         cx="1107.4906"
+         id="path5679"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:0.12000002;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" />
+      <path
+         d="m 1128.5076,499.2335 a 9.75,10.845506 0 0 1 10.8367,-5.17834 9.75,10.845506 0 0 1 7.3925,10.22271 9.75,10.845506 0 0 1 -6.8693,10.66467"
+         sodipodi:open="true"
+         sodipodi:end="1.2712749"
+         sodipodi:start="3.6570806"
+         sodipodi:ry="10.845506"
+         sodipodi:rx="9.75"
+         sodipodi:cy="504.5799"
+         sodipodi:cx="1136.9906"
+         sodipodi:type="arc"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:0.12000002;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         id="ellipse5681"
+         transform="matrix(1,0,-0.43796942,0.89898987,0,0)" />
     </g>
   </g>
 </svg>
