@@ -2,6 +2,8 @@ import numpy as np
 import math
 import sys
 import random
+import json
+import pkgutil
 
 from wasabi2d import Vector2
 from pygame import joystick
@@ -261,27 +263,25 @@ def generate_level(level):
     l = 17
     t = 34
     sprites = [
-        (f'bg-end-{left}', (l + 165, 350 + t)),
-        (f'bg-mid-{mid}', (l + 165 + 330, 350 + t)),
-        (f'bg-end-{right}', (l + 165 + 660, 350 + t)),
+        (f'bg-end-{left}', (l + 165, 350 + t), 0),
+        (f'bg-mid-{mid}', (l + 165 + 330, 350 + t), 0),
+        (f'bg-end-{right}', (l + 165 + 660, 350 + t), math.pi),
     ]
-    for name, pos in sprites:
+    for name, pos, rotation in sprites:
         w = scene.layers[Layers.ENTITIES].add_sprite(f'{name}-wall', pos=pos)
-    w.angle = math.pi
-    for name, pos in sprites:
+        w.angle = rotation
         w = scene.layers[Layers.FLOOR].add_sprite(f'{name}-floor', pos=pos)
-    w.angle = math.pi
+        w.angle = rotation
+
     scene.background = '#2c332d'
 
-    ul = Vector2D(0, 0)
-    lr = Vector2D(scene.width, scene.height)
-
     walls = level.walls
-    def rect(tl, br):
-        walls.append(Wall(level, tl, br, False))
 
-    rect(ul, Vector2D(scene.width, 30 + t))
-    rect(Vector2D(0, scene.height - 30 - t), lr)
+    for fname, pos, rotation in sprites:
+        data = pkgutil.get_data(__name__, f'walldata/{fname}-walls.json')
+        pts = json.loads(data.decode('ascii'))
 
-    rect(ul, Vector2D(30 + l, scene.height))
-    rect(Vector2D(scene.width - 30 - l, 0), lr)
+        pos = Vector2D(pos)
+        for loop in pts:
+            poly = [pos + Vector2D(x - 165, y - 350).rotated(rotation) for x, y in loop]
+            walls.append(Wall(level, poly, visible=False))
