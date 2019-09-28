@@ -85,7 +85,10 @@ class Bomb:
         self.age = 0
 
     def delete(self):
-        self.sprite.delete()
+        if self.sprite:
+            self.sprite.delete()
+            self.level.objects.remove(self)
+            self.sprite = None
 
     def update(self, dt):
         self.vel *= self.DRAG ** dt
