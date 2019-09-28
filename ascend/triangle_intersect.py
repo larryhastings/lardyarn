@@ -41,7 +41,7 @@ def polygon_collision(poly, circle_pos, circle_radius):
     if dists[closest] < 1e-5:
         return pen
 
-    to_corner = close_point / np.linalg.norm(close_point)
+    to_corner = close_point / np.hypot(*close_point)
     dists = dot(relpts, to_corner)
     if np.all(dists >= closest - 1e-5):
         if dists[closest] > circle_radius:
