@@ -512,7 +512,7 @@ class Level:
         or_button_1 = "or button 1 " if control.stick else ""
         or_button_4 = "or button 4 " if control.stick else ""
         self.show_message(
-            f"ROLLER KNIGHT\n"
+            f"Roller Knight\n"
             "\n"
             f"Press Space {or_button_1}for New Game\n"
             f"Press 1 or {or_button_4}for an Endless Challenge\n"

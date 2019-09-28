@@ -14,6 +14,11 @@ you're moving really fast!  So you've strapped roller skates to your
 armor.  The good news is now you can use your sword--the bad news is
 it can be hard to control when you're moving that fast!
 
+## Running Roller Knight
+
+Run `python3 game.py` in the Roller Knight directory.
+Make sure all the requirements are installed first!
+
 ## Gameplay
 
 Roller Knight support keyboard controls (WASD) and joysticks.

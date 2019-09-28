@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+print("[INFO] Welcome to Roller Knight!")
+print("[INFO] Copyright 2019 by Dan Pope and Larry Hastings.")
 print("[INFO] Initializing runtime...")
 
 from ascend.settings import load_settings

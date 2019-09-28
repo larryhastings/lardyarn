@@ -683,12 +683,12 @@ class Player:
         self.on_death(other)
 
     def on_death(self, other):
-        print(f"[WARN] Player hit {other}!  Game over!")
+        print(f"[WARN] Player hit {other}!")
         self.dead = True
         self.game.lose("YOU DIED")
 
     def on_win(self):
-        print("[INFO] Player wins!  Game over!")
+        print("[INFO] Player wins!")
         self.dead = True
         self.game.win()
 
