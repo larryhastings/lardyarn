@@ -645,5 +645,3 @@ def generate_level(level, *, left=None, mid=None, right=None, flip=False):
         pos=p2
     )
     level.build_spatial_hash()
-    music.play('music1')
-

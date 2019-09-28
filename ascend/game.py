@@ -1,4 +1,4 @@
-from wasabi2d import Scene, event, animate, sounds
+from wasabi2d import Scene, event, animate, sounds, music
 from pathlib import Path
 import sys
 
@@ -46,6 +46,9 @@ class Game:
         )
 
         scene.background = (0.2, 0.2, 0.2)
+
+        music.play('music1')
+        music.set_volume(0.5)
 
     def init_scene(self):
         scene = self.scene
