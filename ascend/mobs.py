@@ -8,7 +8,6 @@ from .vector2d import Vector2D, Polar2D
 from .collision import entity_collision
 
 
-
 class MagicMissile:
     SMOKE_RATE = 20
     SPEED = 200
@@ -22,9 +21,10 @@ class MagicMissile:
             'spark',
             pos=pos,
         )
-        self.sprite.color = (0.4, 3.0, 0.4, 1.0)
+        self.sprite.color = (0.4, 2.0, 0.4, 1.0)
         self.sprite.scale = 0.3
         self.age = 0
+        clock.each_tick(self.update)
 
     @property
     def pos(self):
@@ -58,6 +58,7 @@ class MagicMissile:
 
     def delete(self):
         """Remove the missile from the level."""
+        clock.unschedule(self.update)
         self.level.objects.remove(self)
         self.sprite.delete()
 

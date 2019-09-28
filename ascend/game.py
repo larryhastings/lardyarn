@@ -1,5 +1,4 @@
-from wasabi2d import Scene, event, run, clock
-import pygame
+from wasabi2d import Scene, event
 from pathlib import Path
 import sys
 
@@ -13,8 +12,6 @@ from .level import Level
 __all__ = [
     'Game',
 ]
-
-
 
 
 class Game:
@@ -50,7 +47,7 @@ class Game:
             radius=2,
             offset=(1.5, 1.5)
         )
-        scene.layers[Layers.WALL].set_effect(
+        scene.layers[Layers.ENTITIES].set_effect(
             'dropshadow',
             radius=3,
             offset=(3, 3)
@@ -60,7 +57,7 @@ class Game:
             radius=3,
             offset=(3, 3)
         )
-        scene.layers[Layers.ENTITIES].set_effect(
+        scene.layers[Layers.UPPER_EFFECTS].set_effect(
             'bloom',
             radius=10,
         )

@@ -168,11 +168,11 @@ class Knight:
     def __init__(self, level, color=(1, 1, 1, 1)):
         self.level = level
         scene = self.scene = level.scene
-        shield_sprite = scene.layers[0].add_sprite('shield')
-        sword_sprite = scene.layers[1].add_sprite('sword-gripped')
+        shield_sprite = scene.layers[Layers.ENTITIES].add_sprite('shield')
+        sword_sprite = scene.layers[Layers.UPPER_EFFECTS].add_sprite('sword-gripped')
         sword_sprite.color = (1.4, 1.4, 1.4, 1)
-        self.knight = scene.layers[0].add_sprite('knight')
-        self.head = scene.layers[0].add_sprite('knight-head')
+        self.knight = scene.layers[Layers.ENTITIES].add_sprite('knight')
+        self.head = scene.layers[Layers.ENTITIES].add_sprite('knight-head')
 
         for spr in (self.knight, self.head):
             spr.color = color

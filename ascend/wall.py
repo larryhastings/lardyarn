@@ -33,7 +33,7 @@ class Wall:
             ]
 
         if visible:
-            self.layer = level.scene.layers[Layers.WALL]
+            self.layer = level.scene.layers[Layers.ENTITIES]
             self.shape = self.layer.add_rect(
                 pos=self.pos,
                 width=self.width,
