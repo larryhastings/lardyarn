@@ -44,7 +44,7 @@ def line_segment_intersects_circle(start, along, center, radius):
 
 
 class Level:
-    def __init__(self, game, number):
+    def __init__(self, game, name):
         self.game = game
         self.scene = game.scene
 
@@ -55,13 +55,14 @@ class Level:
         self.enemies = []
         self.walls = []
         self.update = self.larry_update
-        self.number = number
+        self.name = name
+        self.next = None
         self.proceed_on_button_release = False
-        if number == "title screen":
+        if name == "title screen":
             self.populate = self.title_screen
 
     def __repr__(self):
-        return f"<Level {self.number!r}>"
+        return f"<Level {self.name!r}>"
 
     def dan_new_level(self):
         self.create_players()
@@ -255,14 +256,14 @@ class Level:
             if new_game_button_pressed:
                 self.proceed_on_button_release = True
             elif self.proceed_on_button_release:
-                self.game.new()
+                self.next_level()
             return
 
         if self.player:
             self.player.update(dt, keyboard)
 
         if not self.enemies:
-            self.player.on_win()
+            self.level_complete()
         else:
             # TODO: decide we allow enemies to overlap
             self.resolve_collisions()
@@ -278,33 +279,101 @@ class Level:
 
         enemies = self.enemies
         walls = self.walls
-
         assert not (enemies or walls)
 
         generate_level(self)
 
-        if len(sys.argv) > 1:
-            if sys.argv[1] == "1":
-                enemies.append(Blob(self))
-            elif sys.argv[1] == "2":
-                enemies.append(Spawner(self, Vector2D(0, 0)))
-            elif sys.argv[1] == "prince":
-                three_quarters_across = Vector2D(scene.width * 3 / 4, scene.height / 2)
-                enemies.append(Prince(self, three_quarters_across))
-        else:
-            for i in range(15):
-                enemies.append(Stalker(self, fast=False))
+        class LevelSpawner:
+            def __init__(self, level, *,
+                slow_stalkers = 0,
+                fast_stalkers = 0,
+                splitters = 0,
+                shooters = 0,
+                spawners = 0,
+                blobs = 0,
+                princes = 0,
+                next = None
+                ):
+                self.level = level
+                self.slow_stalkers = slow_stalkers
+                self.fast_stalkers = fast_stalkers
+                self.splitters = splitters
+                self.shooters = shooters
+                self.spawners = spawners
+                self.blobs = blobs
+                self.princes = princes
+                assert next
+                self.next = next
 
-            for i in range(3):
-                enemies.append(Stalker(self, fast=True))
+            def spawn(self):
+                enemies = self.level.enemies
+                level = self.level
 
-            for i in range(2):
-                enemies.append(Splitter(self))
+                for i in range(self.slow_stalkers):
+                    enemies.append(Stalker(level, fast=False))
 
-            for i in range(5):
-                enemies.append(Shooter(self))
+                for i in range(self.fast_stalkers):
+                    enemies.append(Stalker(level, fast=True))
+
+                for i in range(self.splitters):
+                    enemies.append(Splitter(level))
+
+                for i in range(self.shooters):
+                    enemies.append(Shooter(level))
+
+                assert self.spawners < 4
+                if self.spawners:
+                    width = self.level.scene.width
+                    height = self.level.scene.height
+                    corners = [
+                        Vector2D(0, 0),
+                        Vector2D(width, 0),
+                        Vector2D(width, height),
+                        Vector2D(0, height),
+                        ]
+                    random.shuffle(corners)
+                    for i, corner in zip(range(self.spawners), corners):
+                        enemies.append(Spawners(level, corner))
+
+                for i in range(self.blobs):
+                    enemies.append(Spawners(level))
+
+                if self.princes:
+                    assert not enemies
+                    three_quarters_across = Vector2D(scene.width * 3 / 4, scene.height / 2)
+                    enemies.append(Prince(level, three_quarters_across))
+
+                level.next = self.next
+
+        level_spawners = {
+            "1": LevelSpawner(self,
+                slow_stalkers=2,
+                # slow_stalkers=20,
+                # fast_stalkers=4,
+                next="2"
+                ),
+            "2": LevelSpawner(self,
+                # slow_stalkers=30,
+                # shooters=5,
+                shooters=1,
+                next="3"
+                ),
+            "3": LevelSpawner(self,
+                princes=1,
+                next="title screen", # we won't get there
+                ),
+        }
+        spawner = level_spawners.get(self.name)
+        assert spawner, "didn't have a spawner for level " + self.name
+        spawner.spawn()
 
         print("[INFO] Fight!")
+
+    def next_level(self):
+        assert self.next
+        next = Level(self.game, self.next)
+        self.game.go_to_level(next)
+
 
     def show_message(self, text):
         scene = self.scene
@@ -329,11 +398,20 @@ class Level:
         )
 
     def win(self):
+        self.game.paused = True
         or_button_0 = "or button 0 " if control.stick else ""
         self.show_message(
-            "A WINNER IS YOU!\n"
+            "YOU WIN!\n"
             f"Press Space {or_button_0}to continue\n"
-            "Press Escape to quit"
+        )
+        sounds.game_won.play()
+
+    def level_complete(self):
+        self.game.paused = True
+        or_button_0 = "or button 0 " if control.stick else ""
+        self.show_message(
+            "Level Complete\n"
+            f"Press Space {or_button_0}to continue\n"
         )
         sounds.game_won.play()
 
@@ -375,7 +453,7 @@ class Level:
         if new_game_button_pressed:
             self.proceed_on_button_release = True
         elif self.proceed_on_button_release:
-            level = Level(self.game, 1)
+            level = Level(self.game, '1')
             self.game.go_to_level(level)
 
 
@@ -401,10 +479,13 @@ ENDS = 3
 MIDS = 3
 
 
-def generate_level(level):
-    left = random.randrange(ENDS) + 1
-    mid = random.randrange(MIDS) + 1
-    right = random.randrange(ENDS) + 1
+def generate_level(level, *, left=None, mid=None, right=None):
+    if left is None:
+        left = random.randrange(ENDS) + 1
+    if mid is None:
+        mid = random.randrange(MIDS) + 1
+    if right is None:
+        right = random.randrange(ENDS) + 1
 
     scene = level.scene
 

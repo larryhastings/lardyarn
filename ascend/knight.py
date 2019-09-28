@@ -654,6 +654,7 @@ class Player:
         print(f"[WARN] Player hit {other}!  Game over!")
         self.dead = True
         self.game.lose("YOU DIED")
+        self.game.level.next = "title screen"
 
     def on_win(self):
         print("[INFO] Player wins!  Game over!")
