@@ -2,6 +2,11 @@ from wasabi2d import Scene, run, event
 from ascend import game
 import pygame
 
+from ascend.settings import load_settings
+from ascend.sound import init_sound
+
+
+settings = load_settings()
 
 scene = Scene(
     title="Ascent - PyWeek 28",

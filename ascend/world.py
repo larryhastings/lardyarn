@@ -1,10 +1,18 @@
 import numpy as np
 import math
+import sys
+
 from wasabi2d import Vector2
 
-from .knight import Knight, Bomb
+from .knight import Knight, Bomb, Player
 from .mobs import Skeleton, Mage
 
+from .vector2d import Vector2D, Polar2D
+from .wall import Wall
+from .mobs import Shooter, Stalker
+
+from . import control
+from .constants import Layers
 
 def line_segment_intersects_circle(start, along, center, radius):
     Q = center                  # Centre of circle
@@ -27,11 +35,17 @@ def line_segment_intersects_circle(start, along, center, radius):
 
 
 class World:
-    def __init__(self, scene):
-        self.scene = scene
+    def __init__(self, game):
+        self.game = game
+        self.scene = game.scene
         self.pcs = []
         self.objects = []
         self.mobs = []
+
+        self.player = None
+        self.enemies = []
+        self.walls = []
+
 
     def spawn_pc(self, *, color='white') -> Knight:
         knight = Knight(self, color)
@@ -107,3 +121,103 @@ class World:
                     sep.normalize_ip()
                     mob1.pos = p1 - sep * overlap * 0.5
                     mob2.pos = p2 + sep * overlap * 0.5
+
+    def detect_wall_collisions(self, entity):
+        collisions = []
+        for wall in self.walls:
+            collision = wall.collide_with_entity(entity)
+            if collision:
+                collisions.append(collision)
+
+        if not collisions:
+            return None
+        if len(collisions) == 1:
+            return collisions[0]
+
+        cumulative_vector = collisions[0]
+        for collision in collisions[1:]:
+            cumulative_vector += collision
+        return cumulative_vector
+
+    def new_player(self):
+        self.player = Player(self)
+
+    def proto_update(self, dt, keyboard):
+        if keyboard.escape:
+            sys.exit("[INFO] Quittin' time!")
+
+        if self.game.paused:
+            if control.stick:
+                for button in (0, 1, 2, 3):
+                    if control.stick.get_button(button):
+                        self.game.close_game()
+                        self.game.new_game()
+                        break
+            return
+
+        self.player.update(dt, keyboard)
+
+        if not self.enemies:
+            self.player.on_win()
+        else:
+            for enemy in self.enemies:
+                enemy.update(dt)
+
+    def new_game(self):
+        print("[INFO] Spawning player and enemies...")
+
+        world = self
+        scene = self.scene
+
+        world.new_player()
+
+        enemies = world.enemies
+        walls = world.walls
+
+        assert not (enemies or walls)
+
+        ul = Vector2D(0, 0)
+        lr = Vector2D(scene.width, scene.height)
+
+        walls.append(Wall(world, ul, Vector2D(scene.width, 20)))
+        walls.append(Wall(world, Vector2D(0, scene.height - 20), lr))
+
+        walls.append(Wall(world, ul, Vector2D(20, scene.height)))
+        walls.append(Wall(world, Vector2D(scene.width - 20, 0), lr))
+
+        # and a wall in the middle to play with
+        walls.append(Wall(world, Vector2D(600, 200), Vector2D(800, 400)))
+
+
+        if len(sys.argv) > 1 and sys.argv[1] == "1":
+            enemies.append(Stalker(world, fast=False))
+        else:
+            for i in range(15):
+                enemies.append(Stalker(world, fast=False))
+
+            for i in range(3):
+                enemies.append(Stalker(world, fast=True))
+
+            for i in range(5):
+                enemies.append(Shooter(world))
+
+        print("[INFO] Fight!")
+
+    def close_game(self):
+        self.player.close()
+        self.player = None
+
+        for enemy in self.enemies:
+            enemy._close()
+        self.enemies.clear()
+
+        for wall in self.walls:
+            wall._close()
+        self.walls.clear()
+
+        # clear out all layers
+        for layer in dir(Layers):
+            if layer.startswith("_"):
+                continue
+            value = getattr(Layers, layer)
+            self.scene.layers[value].clear

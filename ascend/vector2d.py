@@ -1,9 +1,28 @@
 #!/usr/bin/env python3
-from math import sin, cos, atan2, sqrt
+from math import sin, cos, atan2, sqrt, pi, tau
+
+
+def angle_diff(a, b):
+    """Subtract angle b from angle a.
+
+    Return the difference in the smallest direction.
+    """
+    diff = (a - b) % tau
+    return min(diff, diff - tau, key=abs)
+
+
+def normalize_angle(theta):
+    if theta > pi:
+        theta -= tau
+    elif theta < -pi:
+        theta += tau
+    return theta
+
+
+
 
 def repr_float(f):
     return f"{f:3.4f}"
-
 
 class Vector2D:
 

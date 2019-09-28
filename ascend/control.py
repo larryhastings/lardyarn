@@ -5,6 +5,8 @@ from wasabi2d import keys
 from wasabi2d.keyboard import keyboard
 from pygame import joystick
 
+from .vector2d import Vector2D, Polar2D
+
 
 joystick.init()
 
@@ -55,3 +57,52 @@ class KeyboardController:
 
 assert len(KeyboardController.KEY_MAP) == len(JoyController.BUTTON_MAP), \
         "Mismatch on number of inputs for controller types."
+
+movement_keys = {}
+stick = None
+use_left_stick = use_face_buttons = use_hat = False
+
+def init_controls(settings):
+    global movement_keys
+    global stick
+    global use_left_stick
+    global use_face_buttons
+    global use_hat
+
+    movement_keys[keys.W] = movement_keys[keys.UP]    = Vector2D(+0, -1)
+    movement_keys[keys.S] = movement_keys[keys.DOWN]  = Vector2D(+0, +1)
+    movement_keys[keys.A] = movement_keys[keys.LEFT]  = Vector2D(-1, +0)
+    movement_keys[keys.D] = movement_keys[keys.RIGHT] = Vector2D(+1, +0)
+
+    which_joystick = settings['joystick']
+    if which_joystick < joystick.get_count():
+        stick = joystick.Joystick(which_joystick)
+        stick.init()
+        axes = stick.get_numaxes()
+        noun = "axis" if axes == 1 else "axes"
+        print(f"[INFO] {axes} joystick analogue {noun}")
+        use_left_stick = (
+            (max(settings['move x axis'], settings['move y axis']) < axes)
+            and
+            (min(settings['move x axis'], settings['move y axis']) >= 0))
+
+        buttons = stick.get_numbuttons()
+        noun = "button" if buttons == 1 else "buttons"
+        print(f"[INFO] {buttons} joystick {noun}")
+
+        hats = stick.get_numhats()
+        noun = "hat" if hats == 1 else "hats"
+        print(f"[INFO] {hats} joystick {noun}")
+        use_hat = hats >= 1
+        use_hat = (
+            (settings['hat'] < hats)
+            and
+            (settings['hat'] >= 0))
+    else:
+        print(f"[WARN] Insufficient joysticks!")
+        print(f"[WARN] We want joystick #{which_joystick}, but only {joystick.get_count()} joysticks detected.")
+        use_left_stick = use_face_buttons = use_hat = False
+        stick = None
+
+    print("[INFO] use left stick?", use_left_stick)
+    print("[INFO] use hat?", use_hat)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from vector2d import Vector2D
+from .vector2d import Vector2D
 import numpy as np
 
 

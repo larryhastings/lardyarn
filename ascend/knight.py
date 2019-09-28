@@ -3,10 +3,12 @@ from typing import Any
 from dataclasses import dataclass, field
 
 import numpy as np
-from wasabi2d import Vector2, animate, clock
+from wasabi2d import Vector2, animate, clock, sounds
+from .vector2d import Vector2D, Polar2D, angle_diff, normalize_angle
+from .collision import polygon_collision
+from .constants import Layers, CollisionType
 
-
-TAU = 2 * math.pi
+from . import control
 
 
 def angle_diff(a, b):
@@ -14,8 +16,8 @@ def angle_diff(a, b):
 
     Return the difference in the smallest direction.
     """
-    diff = (a - b) % TAU
-    return min(diff, diff - TAU, key=abs)
+    diff = (a - b) % math.tau
+    return min(diff, diff - math.tau, key=abs)
 
 
 class Hand:
@@ -409,3 +411,276 @@ class KnightController:
         self.knight.v = self.v
 
         self.accel *= 0.0
+
+
+
+# tweaked faster values
+acceleration_scale = 1800
+air_resistance = 0.07
+max_speed = 700  # max observed speed is 691 anyway
+
+
+max_speed_measured = 691.0
+
+class Player:
+    dead = False
+    zone_angle = 0
+    body_radius = 10
+    # sword_radius = 25
+    # radius = sword_radius
+    # shield_arc = math.tau / 4 # how far the shield extends
+    # zone_angle = 0
+    zone_arc = math.tau / 4  # how far the shield extends
+    zone_radius = 15
+    outer_radius = body_radius + zone_radius
+    radius = outer_radius
+    # HACK: radius_squared is only used by collision with wall
+    # and for that we ignore the zone and just use the body
+    radius_squared = body_radius * body_radius
+
+    # max speed measured: 590 and change
+    zone_activation_speed = 350
+    zone_grace_period = 0.1
+    zone_grace_timeout = 0
+
+    zone_center_distance = body_radius + (zone_radius / 2)
+    zone_flash_until = 0
+
+    message = None
+
+    def __init__(self, world):
+        self.world = world
+        self.game = world.game
+        scene = world.scene
+        screen_center = Vector2D(scene.width / 2, scene.height / 2)
+        self.pos = Vector2D(screen_center)
+        self.shape = Knight(world)
+        self.shape.knight.pos = self.pos
+
+        self.momentum = Vector2D()
+
+        # new "zone of destruction"
+        self.normal_zone_color = (0.3, 0.3, 0.8)
+        self.flashing_zone_color = (0.9, 0.9, 1)
+
+        # draw zone as arc
+        vertices = [Vector2D(self.body_radius, 0)]
+        points_on_zone = 12
+        # lame, range only handles ints. duh!
+        start = -self.zone_arc / 2
+        stop = self.zone_arc / 2
+        step = (stop - start) / points_on_zone
+        theta = start
+
+        def append(theta):
+            v = Vector2D(Polar2D(self.zone_radius, theta))
+            v += Vector2D(self.body_radius, 0)
+            vertices.append(tuple(v))
+        while theta < stop:
+            append(theta)
+            theta += step
+
+        self.zone_layer = scene.layers[Layers.ZONE_LAYER]
+        self.zone = self.zone_layer.add_polygon(
+            vertices,
+            fill=True,
+            color=self.normal_zone_color
+        )
+        self.zone_center = self.pos + Vector2D(self.zone_center_distance, 0)
+        self.zone_layer_active = False
+        self.zone_layer.visible = False
+
+        self.zone_triangle = self.previous_zone_triangle = []
+
+        self.message = scene.layers[Layers.TEXT_LAYER].add_label(
+            text=".",
+            fontsize=44.0,
+            align="center",
+            pos=screen_center,
+        )
+        self.message.text = ""
+
+    def close(self):
+        self.shape.delete()
+        self.zone.delete()
+        if self.message:
+            # del self.message
+            # self.message.delete()
+            self.message.text = ""
+
+    def compute_collision_with_bad_guy(self, bad_guy):
+        if self.dead:
+            return CollisionType.NO_COLLISION
+
+        distance_vector = self.pos - bad_guy.pos
+        distance_squared = distance_vector.magnitude_squared
+        intersect_outer_radius = distance_squared <= bad_guy.outer_collision_distance_squared
+        if not intersect_outer_radius:
+            return CollisionType.NO_COLLISION
+
+        # bad_guy intersecting with the zone?
+        if self.zone_layer.visible:
+            if (self.previous_zone_triangle
+                and polygon_collision(self.previous_zone_triangle, bad_guy.pos, bad_guy.radius)):
+                return CollisionType.COLLISION_WITH_ZONE
+
+            if polygon_collision(self.zone_triangle, bad_guy.pos, bad_guy.radius):
+                return CollisionType.COLLISION_WITH_ZONE
+
+        intersect_body_radius = distance_squared <= bad_guy.body_collision_distance_squared
+        # print(f"    interecting body? {intersect_body_radius}")
+
+        if intersect_body_radius:
+            return CollisionType.COLLISION_WITH_PLAYER
+
+    def update(self, dt, keyboard):
+        if self.zone_flash_until and (self.zone_flash_until < self.game.time):
+            self.zone_flash_until = 0
+            self.zone.color = self.normal_zone_color
+
+        acceleration = Vector2D()
+        for key, vector in control.movement_keys.items():
+            if keyboard[key]:
+                acceleration += vector
+
+        if control.use_hat:
+            x, y = control.stick.get_hat(0)
+            if x or y:
+                acceleration += Vector2D(x, -y)
+
+        if control.use_left_stick:
+            acceleration += Vector2D(
+                control.stick.get_axis(0),
+                control.stick.get_axis(1)
+            )
+
+        if acceleration.magnitude > 1.0:
+            acceleration = acceleration.normalized()
+
+        self.momentum = self.momentum * air_resistance ** dt + acceleration_scale * acceleration * dt
+        if self.momentum.magnitude > max_speed:
+            self.momentum = self.momentum.scaled(max_speed)
+
+        # Rotate to face the direction of acceleration
+        TURN = 12  # radians / s at full acceleration
+
+        da, accel_angle = Polar2D(acceleration)
+        delta = angle_diff(accel_angle, self.zone_angle)
+        if delta < 0:
+            self.zone_angle += max(dt * da * -TURN, delta)
+        else:
+            self.zone_angle += min(dt * da * TURN, delta)
+        self.zone.angle = self.zone_angle = normalize_angle(self.zone_angle)
+
+        starting_pos = self.pos
+        movement_this_frame = self.momentum * dt
+        self.pos += movement_this_frame
+        if self.pos == starting_pos:
+            return
+
+        penetration_vector = self.world.detect_wall_collisions(self)
+        if penetration_vector:
+            # we hit one or more walls!
+
+            # print(f"[{self.game.frame:6} {self.game.time:8}] collision! self.pos {self.pos} momentum {self.momentum} penetration_vector {penetration_vector}")
+            self.pos -= penetration_vector
+
+            # self.momentum = (-penetration_vector).scaled(self.momentum.magnitude)
+            reflection_vector = Polar2D(penetration_vector)
+            # print(f"  reflection_vector {reflection_vector}")
+            # perpendicular to the bounce vector
+            reflection_theta = reflection_vector.theta + math.pi / 2
+            # print(f"  reflection_theta {reflection_theta}")
+            current_momentum_theta = Polar2D(self.momentum).theta
+            # print(f"current_momentum_theta {current_momentum_theta}")
+            new_momentum_theta = (reflection_theta * 2) - current_momentum_theta
+            # print(f"  new_momentum_theta {new_momentum_theta}")
+            self.momentum = Vector2D(Polar2D(self.momentum.magnitude, new_momentum_theta))
+
+            # print(f"[{self.game.frame:6} {self.game.time:8}] new self.pos {self.pos} momentum {self.momentum}")
+            # print()
+
+        self.zone.pos = self.shape.pos = self.pos
+
+        current_speed = self.momentum.magnitude
+        # global max_speed_measured
+        # new_max = max(max_speed_measured, current_speed)
+        # if new_max > max_speed_measured:
+        #     max_speed_measured = new_max
+        #     print("new max speed measured:", max_speed_measured)
+
+        zone_currently_active = current_speed >= self.zone_activation_speed
+        if zone_currently_active:
+            if not self.zone_layer_active:
+                # print("STATE 1: ZONE ACTIVE")
+                self.zone_layer.visible = self.zone_layer_active = True
+                self.zone_grace_timeout = 0
+        else:
+            if self.zone_layer_active:
+                if not self.zone_grace_timeout:
+                    # print("STATE 2: STARTING ZONE GRACE TIMEOUT")
+                    self.zone_grace_timeout = self.game.time + self.zone_grace_period
+                elif self.game.time < self.zone_grace_timeout:
+                    pass
+                else:
+                    # print("STATE 3: ZONE TIMED OUT")
+                    self.zone_grace_timeout = 0
+                    self.zone_layer.visible = self.zone_layer_active = False
+
+        if not self.zone_layer_active:
+            self.previous_zone_triangle = self.zone_triangle = []
+            return
+
+        self.zone_center = self.pos + Polar2D(self.zone_center_distance, self.zone_angle)
+
+        # cache zone triangle for collision detection purposes
+        v1 = Vector2D(Polar2D(self.body_radius, self.zone_angle))
+        v1 += self.pos
+        v2delta = Vector2D(Polar2D(self.zone_radius, self.zone_angle - self.zone_arc / 2))
+        v2 = v1 + v2delta
+        v3delta = Vector2D(Polar2D(self.zone_radius, self.zone_angle + self.zone_arc / 2))
+        v3 = v1 + v3delta
+        self.previous_zone_triangle = self.zone_triangle
+        self.zone_triangle = [v1, v2, v3]
+        # print(f"player pos {self.pos} :: zone angle {self.zone_angle} triangle {self.zone_triangle}")
+        self.shape.angle = self.zone_angle
+        self.shape.update(dt)
+
+    def on_collision_zone(self, other):
+        """
+        self and body are within sword radius.  are they colliding?
+        Returns enum indicating type of collision.
+        """
+        self.zone_flash_until = self.game.time + 0.1
+        self.zone.color = self.flashing_zone_color
+        sounds.zap.play()
+
+    def on_collision_body(self, other):
+        """
+        self and body are within body radius. they're colliding, but how?
+        Returns enum indicating type of collision.
+        """
+        self.on_death(other)
+
+    def on_death(self, other):
+        print(f"[WARN] Player hit {other}!  Game over!")
+        self.dead = True
+        self.game.paused = True
+        sounds.hit.play()
+        # self.shape.delete()
+        # self.shield.delete()
+
+        self.message.text = "YOU DIED\nGAME OVER\npress Space or joystick button to play again\npress Escape to quit"
+
+    def on_win(self):
+        global pause
+        print("[INFO] Player wins!  Game over!")
+        self.dead = True
+        self.game.paused = True
+        # sounds.hit.play()
+        # self.shape.delete()
+        # self.shield.delete()
+
+        self.message.text = "A WINNER IS YOU!\ngame over\npress Space or joystick button to play again\npress Escape to quit"
+        sounds.game_won.play()
+
