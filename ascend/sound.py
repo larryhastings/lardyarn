@@ -1,12 +1,14 @@
 import pygame
 
+
 def init_sound(settings):
     print("[INFO] Initializing sound...")
 
     if pygame.mixer.get_init():
         pygame.mixer.quit()
     try:
-        pygame.mixer.init(devicename=settings.get('mixer devicename'))
+        pygame.mixer.pre_init(devicename=settings.get('mixer devicename'))
+        pygame.mixer.init()
     except pygame.error as e:
         print(
             "[WARN] Couldn't get exclusive access to sound device! "
@@ -19,4 +21,3 @@ def init_sound(settings):
         # which ALSO won't work, but pygame works better this way.
         pygame.mixer.pre_init(devicename=None)
         pygame.mixer.init()
-
