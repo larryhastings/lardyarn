@@ -4,6 +4,8 @@ import sys
 import random
 import json
 import pkgutil
+from itertools import product
+from pygame import Rect
 
 from wasabi2d import Vector2
 from pygame import joystick
@@ -168,9 +170,36 @@ class Level:
                     mob1.pos = p1 - sep * overlap * 0.5
                     mob2.pos = p2 + sep * overlap * 0.5
 
+    def build_spatial_hash(self):
+        self.wall_hash = {}
+        for w in self.walls:
+            for k in self.hash_coords(w.r):
+                self.wall_hash.setdefault(k, []).append(w)
+
+    HASH_SCALE = 80
+
+    def hash_coords(self, rect):
+        """Get an iterable of spatial hash keys."""
+        s = self.HASH_SCALE
+        l = rect.left // s
+        r = rect.right // s + 1
+        t = rect.top // s
+        b = rect.bottom // s + 1
+        return product(range(l, r), range(t, b))
+
     def detect_wall_collisions(self, entity):
+        w = entity.radius * 2
+        r = Rect(*entity.pos, w, w)
+        hit_walls = set()
+        for k in self.hash_coords(r):
+            ws = self.wall_hash.get(k)
+            if ws:
+                hit_walls.update(ws)
+        if not hit_walls:
+            return None
+
         collisions = []
-        for wall in self.walls:
+        for wall in hit_walls:
             collision = wall.collide_with_entity(entity)
             if collision:
                 collisions.append(collision)
@@ -285,3 +314,5 @@ def generate_level(level):
         for loop in pts:
             poly = [pos + Vector2D(x - 165, y - 350).rotated(rotation) for x, y in loop]
             walls.append(Wall(level, poly, visible=False))
+
+    level.build_spatial_hash()

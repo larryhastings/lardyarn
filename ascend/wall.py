@@ -69,7 +69,5 @@ class Wall:
         pass
 
     def collide_with_entity(self, entity):
-        if not self.r.collidepoint(entity.pos):
-            return None
         return polygon_collision(self.points, entity.pos, entity.radius)
 

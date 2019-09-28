@@ -4,7 +4,10 @@ import numpy as np
 
 
 def normalize(vecs: np.ndarray) -> np.ndarray:
-    return vecs / np.linalg.norm(vecs, axis=1, keepdims=True)
+    xs = vecs[:, 0]
+    ys = vecs[:, 1]
+    mags = xs * xs + ys * ys
+    return vecs / np.sqrt(mags)[:, np.newaxis]
 
 
 def dot(xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
