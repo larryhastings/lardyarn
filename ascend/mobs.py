@@ -703,8 +703,11 @@ class Shooter(ShooterBase):
             color='#000000ff'
         )
 
-    def close(self):
+    def _close(self):
         clock.unschedule(self.smoke)
+        super()._close()
+
+    def close(self):
         self.level.shooters.discard(self)
         self.level.scene.skulls.emit(
             1,
