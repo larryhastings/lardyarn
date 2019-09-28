@@ -1,4 +1,4 @@
-from wasabi2d import Scene, event
+from wasabi2d import Scene, event, animate, sounds
 from pathlib import Path
 import sys
 
@@ -7,6 +7,7 @@ import ascend
 from . import control
 from .constants import Layers
 from .level import Level
+from .vector2d import Vector2D, Polar2D
 
 
 __all__ = [
@@ -150,3 +151,45 @@ class Game:
                 print("LEVEL", self.level, type(self.level))
                 print("DIR LEVEL", dir(self.level))
             self.level.update(t, dt, keyboard)
+
+    def show_message(self, text):
+        scene = self.level.scene
+        screen_center = Vector2D(scene.width, scene.height) * 0.5
+        fill = scene.layers[Layers.TEXTBG].add_rect(
+            width=scene.width + 100,
+            height=scene.height + 100,
+            pos=screen_center,
+            color=(0, 0, 0, 0),
+        )
+        animate(fill, duration=0.1, color=(0, 0, 0, 0.33))
+
+        lines = text.count('\n')
+        fontsize = 48
+        pos = screen_center - Vector2D(0, 1.3 * fontsize) * (lines - 0.5) * 0.5
+        scene.layers[Layers.TEXT].add_label(
+            text=text,
+            fontsize=fontsize,
+            align="center",
+            pos=pos,
+            font='magic_medieval',
+        )
+
+    def win(self):
+        self.paused = True
+        self.show_message(
+            "A WINNER IS YOU!\n"
+            "Press Space or joystick button to play again\n"
+            "Press Escape to quit"
+        )
+        sounds.game_won.play()
+
+    def lose(self, text):
+        self.paused = True
+
+        self.show_message(
+            f"{text}\n"
+            "GAME OVER\n"
+            "Press Space or joystick button to play again\n"
+            "Press Escape to quit"
+        )
+        sounds.hit.play()

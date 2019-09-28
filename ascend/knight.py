@@ -7,6 +7,7 @@ from wasabi2d import Vector2, animate, clock, sounds
 from .vector2d import Vector2D, Polar2D, angle_diff, normalize_angle
 from .collision import polygon_collision
 from .constants import Layers, CollisionType
+from .mobs import Prince
 
 from . import control
 
@@ -484,28 +485,6 @@ class Player:
 
         self.zone_triangle = self.previous_zone_triangle = []
 
-    def show_message(self, text):
-        scene = self.level.scene
-        screen_center = Vector2D(scene.width, scene.height) * 0.5
-        fill = scene.layers[Layers.TEXTBG].add_rect(
-            width=scene.width + 100,
-            height=scene.height + 100,
-            pos=screen_center,
-            color=(0, 0, 0, 0),
-        )
-        animate(fill, duration=0.1, color=(0, 0, 0, 0.33))
-
-        lines = text.count('\n')
-        fontsize = 48
-        pos = screen_center - Vector2(0, 1.3 * fontsize) * (lines - 0.5) * 0.5
-        scene.layers[Layers.TEXT].add_label(
-            text=text,
-            fontsize=fontsize,
-            align="center",
-            pos=pos,
-            font='magic_medieval',
-        )
-
     def close(self):
         self.shape.delete()
         self.zone.delete()
@@ -664,36 +643,17 @@ class Player:
         self and body are within body radius. they're colliding, but how?
         Returns enum indicating type of collision.
         """
+        if isinstance(other, Prince):
+            return
         self.on_death(other)
 
     def on_death(self, other):
         print(f"[WARN] Player hit {other}!  Game over!")
         self.dead = True
-        self.game.paused = True
-        sounds.hit.play()
-        # self.shape.delete()
-        # self.shield.delete()
-
-        self.show_message(
-            "YOU DIED\n"
-            "GAME OVER\n"
-            "Press Space or joystick button to play again\n"
-            "Press Escape to quit"
-        )
+        self.game.lose("YOU DIED")
 
     def on_win(self):
-        global pause
         print("[INFO] Player wins!  Game over!")
         self.dead = True
-        self.game.paused = True
-        # sounds.hit.play()
-        # self.shape.delete()
-        # self.shield.delete()
-
-        self.show_message(
-            "A WINNER IS YOU!\n"
-            "Press Space or joystick button to play again\n"
-            "Press Escape to quit"
-        )
-        sounds.game_won.play()
+        self.game.win()
 

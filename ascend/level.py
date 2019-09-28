@@ -15,7 +15,7 @@ from .mobs import Skeleton, Mage
 
 from .vector2d import Vector2D, Polar2D
 from .wall import Wall
-from .mobs import Shooter, Stalker, Splitter, Blob, Spawner
+from .mobs import Shooter, Stalker, Splitter, Blob, Spawner, Prince
 from .knight import KnightController
 from .control import JoyController, KeyboardController
 
@@ -275,6 +275,9 @@ class Level:
                 enemies.append(Blob(self))
             elif sys.argv[1] == "2":
                 enemies.append(Spawner(self, Vector2D(0, 0)))
+            elif sys.argv[1] == "prince":
+                three_quarters_across = Vector2D(scene.width * 3 / 4, scene.height / 2)
+                enemies.append(Prince(self, three_quarters_across))
         else:
             for i in range(15):
                 enemies.append(Stalker(self, fast=False))

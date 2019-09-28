@@ -202,19 +202,19 @@ def repr_float(f):
     return f"{f:4.3f}"
 
 
-bad_guy_id = 1
+entity_id = 1
 
-class BadGuy:
-    die_on_any_collision = False
+class Entity:
+    shape = None
 
     def __init__(self, level):
         self.level = level
         self.game = level.game
 
-        global bad_guy_id
+        global entity_id
         self.pos = Vector2D()
-        self.id = bad_guy_id
-        bad_guy_id += 1
+        self.id = entity_id
+        entity_id += 1
         self.radius_squared = self.radius ** 2
         self.outer_collision_distance = (self.radius + level.player.outer_radius)
         self.outer_collision_distance_squared = self.outer_collision_distance ** 2
@@ -222,6 +222,15 @@ class BadGuy:
         self.body_collision_distance_squared = self.body_collision_distance ** 2
         self.zone_collision_distance = (self.radius + level.player.zone_radius)
         self.zone_collision_distance_squared = self.zone_collision_distance ** 2
+
+    def _close(self):
+        self.dead = True
+        if self.shape:
+            self.shape.delete()
+
+
+class BadGuy(Entity):
+    die_on_any_collision = False
 
     def init_spot(self):
         # pick a random spot near the player
@@ -237,11 +246,6 @@ class BadGuy:
         self.spot_radius_max = 70
         self.spot_offset = Vector2D(random.randint(self.spot_radius_min, self.spot_radius_max), 0).rotated(random.randint(0, 360))
         self.head_to_spot = True
-
-    def _close(self):
-        self.dead = True
-        if self.shape:
-            self.shape.delete()
 
     def close(self):
         self.level.enemies.remove(self)
@@ -722,3 +726,27 @@ class Spawner(ShooterBase):
 
     def move(self, dt):
         self.move_towards_pos(self.final_position)
+
+class Prince(Entity):
+    radius = 20
+
+    def __init__(self, level, pos):
+        super().__init__(level)
+        self.layer = level.scene.layers[Layers.ENTITIES]
+        self.shape = self.layer.add_star(
+            points=8,
+            outer_radius=self.radius,
+            inner_radius=self.radius / 3,
+            fill=True,
+            color=(0.8, 0.15, 0.8, 1),
+        )
+        self.pos = self.shape.pos = pos
+
+    def on_collide_player(self):
+        self.level.game.win()
+
+    def on_collide_zone(self):
+        self.level.game.lose("You killed the prince!")
+
+    def update(self, dt):
+        pass
