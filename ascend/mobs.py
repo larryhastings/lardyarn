@@ -162,7 +162,7 @@ class Gib:
             np.random.normal(0, 100),
         ) + vel
         self.age = 0
-        clock.each_tick(self.update)
+        clock.each_tick(self.my_update)
 
     @property
     def pos(self):
@@ -175,6 +175,9 @@ class Gib:
     BLOOD_RATE = 0.1
 
     def update(self, dt):
+        pass
+
+    def my_update(self, dt):
         self.age += dt
         self.vel *= 0.2 ** dt
         if self.sprite:
@@ -198,8 +201,8 @@ class Gib:
     deleted = False
     def delete(self):
         if not self.deleted:
-            self.level.objects.remove(self)
             self.deleted = True
+            self.level.objects.remove(self)
             clock.unschedule(self.update)
             self.sprite.delete()
             self.sprite = None
@@ -443,7 +446,6 @@ class BadGuy(Entity):
 
     def on_death(self):
         self.delete()
-
 
 
 class Stalker(BadGuy):
