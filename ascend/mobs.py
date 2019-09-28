@@ -535,6 +535,7 @@ class Blobby:
             self.anim.stop()
             clock.unschedule(self.bounce)
             self.shape.delete()
+            self.shape = None
 
     def die(self, vel=Vector2D()):
         self.scene.smoke.emit(
