@@ -9,7 +9,7 @@ from scipy.spatial import ConvexHull
 
 
 file = sys.argv[1]
-datafile = file + '-walls.json'
+datafile = f'ascend/walldata/{file}-walls.json'
 scene = Scene(rootdir='ascend', width=350, height=720)
 scene.background = (0.2,) * 3
 
@@ -99,8 +99,8 @@ def load():
         polys = []
         for loop in pts:
             poly = Poly()
-            for point in loop:
-                poly.add_point(point)
+            for x, y in loop:
+                poly.add_point((x + 10, y + 10))
             polys.append(poly)
         if polys:
             set_current_poly(polys[-1])
@@ -185,6 +185,8 @@ def on_key_down(key):
             polys.remove(current_poly)
             current_poly.delete()
             current_poly = None
+    elif key == keys.F12:
+        scene.toggle_recording()
 
 
 @atexit.register
@@ -193,7 +195,7 @@ def on_exit():
     for poly in polys:
         poly.reduce()
         if len(poly) > 2:
-            pts.append([tuple(p) for p in poly.points])
+            pts.append([(x - 10, y - 10) for x, y in poly.points])
 
     with open(datafile, 'w') as f:
         json.dump(pts, f)
