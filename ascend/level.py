@@ -416,40 +416,41 @@ class Level:
 
     def win(self):
         self.game.paused = True
-        or_button_0 = "or button 0 " if control.stick else ""
+        or_button_1 = "or button 1 " if control.stick else ""
         self.show_message(
             "YOU WIN!\n"
-            f"Press Space {or_button_0}to continue\n"
+            f"Press Space {or_button_1}to continue\n"
         )
         sounds.game_won.play()
 
     def level_complete(self):
         self.game.paused = True
-        or_button_0 = "or button 0 " if control.stick else ""
+        or_button_1 = "or button 1 " if control.stick else ""
         self.show_message(
             "Level Complete\n"
-            f"Press Space {or_button_0}to continue\n"
+            f"Press Space {or_button_1}to continue\n"
         )
         sounds.game_won.play()
 
     def lose(self, text):
-        or_button_0 = "or button 0 " if control.stick else ""
+        or_button_1 = "or button 1 " if control.stick else ""
         self.show_message(
             f"{text}\n"
             "GAME OVER\n"
-            f"Press Space {or_button_0}to continue\n"
+            f"Press Space {or_button_1}to continue\n"
             "Press Escape to quit"
         )
         sounds.hit.play()
 
     def title_screen(self):
         generate_level(self)
-        or_button_0 = "or button 0 " if control.stick else ""
+        or_button_1 = "or button 1 " if control.stick else ""
+        or_button_4 = "or button 4 " if control.stick else ""
         self.show_message(
             f"ROLLER KNIGHT\n"
             "\n"
-            f"Press Space {or_button_0}for New Game\n"
-            "Press 1 or Button 4 for an Endless Challenge\n"
+            f"Press Space {or_button_1}for New Game\n"
+            f"Press 1 or {or_button_4}for an Endless Challenge\n"
             "Press Escape to... escape\n"
             "\n"
             "Copyright 2019 by Darn Yard Lad\n"
@@ -463,11 +464,11 @@ class Level:
 
     def title_screen_update(self, t, dt, keyboard):
         # debounce button
-        endless_pressed = keyboard.k_2
+        endless_pressed = keyboard.k_1
         new_game_button_pressed = keyboard.space
         button_pressed = endless_pressed or new_game_button_pressed
         if not button_pressed and control.stick:
-            endless_pressed = control.stick.get_button(4)
+            endless_pressed = control.stick.get_button(3)
             new_game_button_pressed = control.stick.get_button(0)
 
         if new_game_button_pressed:
