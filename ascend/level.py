@@ -339,4 +339,7 @@ def generate_level(level):
             poly = [pos + Vector2D(x - 165, y - 350).rotated(rotation) for x, y in loop]
             walls.append(Wall(level, poly, visible=False))
 
+
+    scene.layers[Layers.FLOOR].add_sprite('trapdoor', pos=sprites[0][1])
+    scene.layers[Layers.FLOOR].add_sprite('stairs', pos=sprites[2][1])
     level.build_spatial_hash()
