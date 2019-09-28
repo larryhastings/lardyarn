@@ -250,9 +250,16 @@ class Knight:
 
     def delete(self):
         """Remove the knight from the scene."""
-        self.knight.delete()
-        self.shield.delete()
-        self.sword.delete()
+        if self.knight:
+            self.knight.delete()
+            self.shield.delete()
+            self.sword.delete()
+            self.knight = None
+
+    def die(self, v=None):
+        from .mobs import Gib
+        Gib.shower(self.level, self.pos)
+        self.delete()
 
 
 @dataclass
@@ -683,6 +690,7 @@ class Player:
         print(f"[WARN] Player hit {other}!")
         self.dead = True
         self.game.lose("YOU DIED")
+        self.shape.die()
 
     def on_win(self):
         print("[INFO] Player wins!")
