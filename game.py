@@ -29,9 +29,6 @@ def on_key_down(key, mod):
         else:
             game.scene.screenshot()
 
-    if game.paused and (key == key.SPACE):
-        game.new()
-
 
 
 # reminder:
