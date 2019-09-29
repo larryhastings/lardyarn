@@ -16,8 +16,20 @@ it can be hard to control when you're moving that fast!
 
 ## Running Roller Knight
 
-Run `python3 game.py` in the Roller Knight directory.
+Run "`python3 game.py`" in the Roller Knight directory.
 Make sure all the requirements are installed first!
+
+If you're having framerate issues, you can turn off all
+particles with the "`--no-particles`" option.  Sadly the
+game is way less pretty without particles, but it may
+help running the game on older machines.  Just run it as
+"`python3 game.py --no-particle`".
+
+Also, you can specify which level you want to start at,
+as a single positional command-line argument.  For example,
+to jump directly to level 6, you'd run "`python3 game.py 6`".
+And to jump to level 10 of Endless mode,
+run "`python3 game.py 'Endless 10'`".
 
 ## Gameplay
 
@@ -39,3 +51,16 @@ occasionally pick up extra bomb powerups.
 
 Roller Knight was written using the excellent new *wasabi2d*
 library by Dan Pope.
+
+## Release History
+
+### v1.0.1
+
+* Fixed bug: pressing the space bar always started a new game.
+
+* Added `--no-particles` command-line option.
+
+
+### v1.0.0
+
+Initial release.

@@ -15,6 +15,7 @@ class MagicMissile:
 
     def __init__(self, level, pos, vel):
         self.level = level
+        self.game = level.game
         self.scene = level.scene
         self.vel = vel
         self.sprite = self.scene.layers[Layers.UPPER_EFFECTS].add_sprite(
@@ -36,26 +37,27 @@ class MagicMissile:
         self.sprite.pos = v
 
     def update(self, dt):
-        self.scene.smoke.emit(
-            num=np.random.poisson(self.SMOKE_RATE * dt),
-            pos=self.sprite.pos,
-            vel_spread=10,
-            spin_spread=1,
-            size=6,
-            size_spread=3,
-            angle_spread=3,
-            color=(0, 1, 0, 1.0),
-        )
-        self.scene.sparks.emit(
-            num=np.random.poisson(self.SMOKE_RATE * dt),
-            pos=self.sprite.pos,
-            vel=self.vel * 0.8,
-            vel_spread=30,
-            spin_spread=1,
-            size=4,
-            angle_spread=3,
-            color=(0.2, 1, 0.2, 1),
-        )
+        if self.game.use_particles:
+            self.scene.smoke.emit(
+                num=np.random.poisson(self.SMOKE_RATE * dt),
+                pos=self.sprite.pos,
+                vel_spread=10,
+                spin_spread=1,
+                size=6,
+                size_spread=3,
+                angle_spread=3,
+                color=(0, 1, 0, 1.0),
+            )
+            self.scene.sparks.emit(
+                num=np.random.poisson(self.SMOKE_RATE * dt),
+                pos=self.sprite.pos,
+                vel=self.vel * 0.8,
+                vel_spread=30,
+                spin_spread=1,
+                size=4,
+                angle_spread=3,
+                color=(0.2, 1, 0.2, 1),
+            )
 
     deleted = False
     def delete(self):
@@ -70,17 +72,18 @@ class MagicMissile:
         """Kill the missile, showing an effect like it hit something."""
         pos = self.sprite.pos
 
-        self.scene.smoke.emit(
-            num=25,
-            pos=pos,
-            vel=-0.4 * self.vel,
-            vel_spread=50,
-            spin_spread=1,
-            size=6,
-            size_spread=3,
-            angle_spread=3,
-            color=(0, 2, 0, 1.0),
-        )
+        if self.game.use_particles:
+            self.scene.smoke.emit(
+                num=25,
+                pos=pos,
+                vel=-0.4 * self.vel,
+                vel_spread=50,
+                spin_spread=1,
+                size=6,
+                size_spread=3,
+                angle_spread=3,
+                color=(0, 2, 0, 1.0),
+            )
         self.delete()
 
 
@@ -153,6 +156,7 @@ class Gib:
     def __init__(self, level: 'ascend.level.Level', pos, vel=Vector2D()):
         self.scene = level.scene
         self.level = level
+        self.game = level.game
         self.level.objects.append(self)
         self.sprite = self.scene.layers[Layers.LOWER_EFFECTS].add_sprite(
             'smoke',
@@ -191,15 +195,16 @@ class Gib:
             self.delete()
             return
 
-        self.scene.smoke.emit(
-            num=np.random.poisson(self.vel.magnitude * dt * self.BLOOD_RATE),
-            pos=self.sprite.pos,
-            vel_spread=30,
-            spin_spread=1,
-            size=4,
-            size_spread=3,
-            color='#cc0000ff'
-        )
+        if self.game.use_particles:
+            self.scene.smoke.emit(
+                num=np.random.poisson(self.vel.magnitude * dt * self.BLOOD_RATE),
+                pos=self.sprite.pos,
+                vel_spread=30,
+                spin_spread=1,
+                size=4,
+                size_spread=3,
+                color='#cc0000ff'
+            )
 
     deleted = False
     def delete(self):
@@ -216,6 +221,7 @@ class Skeleton:
 
     def __init__(self, level, pos, angle=0):
         self.level = level
+        self.game = level.game
         scene = self.scene = level.scene
 
         self.body = scene.layers[Layers.ENTITIES].add_sprite(
@@ -277,24 +283,25 @@ class Skeleton:
 
     def die(self, vel=(0, 0)):
         self.delete()
-        self.scene.bones.emit(
-            10,
-            pos=self.pos,
-            vel=vel,
-            vel_spread=80,
-            spin_spread=3,
-            size=6,
-            size_spread=1,
-            angle_spread=6,
-        )
-        self.scene.skulls.emit(
-            1,
-            pos=self.pos,
-            vel=vel,
-            vel_spread=80,
-            spin_spread=1,
-            size=7,
-        )
+        if self.game.use_particles:
+            self.scene.bones.emit(
+                10,
+                pos=self.pos,
+                vel=vel,
+                vel_spread=80,
+                spin_spread=3,
+                size=6,
+                size_spread=1,
+                angle_spread=6,
+            )
+            self.scene.skulls.emit(
+                1,
+                pos=self.pos,
+                vel=vel,
+                vel_spread=80,
+                spin_spread=1,
+                size=7,
+            )
         if random.randrange(10) == 0:
             BombPowerup(self.level, self.pos)
 
@@ -490,7 +497,8 @@ class Stalker(BadGuy):
 
 
 class Blobby:
-    def __init__(self, scene, pos=Vector2D(), radius=20):
+    def __init__(self, game, scene, pos=Vector2D(), radius=20):
+        self.game = game
         self.scene = scene
         layer = scene.layers[Layers.ENTITIES]
         self.shape = layer.add_sprite('blob')
@@ -542,23 +550,24 @@ class Blobby:
             self.shape = None
 
     def die(self, vel=Vector2D()):
-        self.scene.smoke.emit(
-            num=self.radius,
-            pos=self.shape.pos,
-            vel=-0.4 * vel,
-            vel_spread=5 * self.radius,
-            spin_spread=1,
-            size=3 * (self.radius / 10),
-            size_spread=3,
-            angle_spread=3,
-            color='#cc00ccff'
-        )
+        if self.game.use_particles:
+            self.scene.smoke.emit(
+                num=self.radius,
+                pos=self.shape.pos,
+                vel=-0.4 * vel,
+                vel_spread=5 * self.radius,
+                spin_spread=1,
+                size=3 * (self.radius / 10),
+                size_spread=3,
+                angle_spread=3,
+                color='#cc00ccff'
+            )
         self.delete()
 
 
 class StalkerBlob(Stalker):
     def _mkshape(self):
-        self.shape = Blobby(self.game.scene, radius=self.radius)
+        self.shape = Blobby(self.game, self.game.scene, radius=self.radius)
 
 
 class Splitter(BadGuy):
@@ -568,7 +577,7 @@ class Splitter(BadGuy):
         super().__init__(level)
         self.speed = 1.3
 
-        self.shape = Blobby(self.game.scene, radius=self.radius)
+        self.shape = Blobby(self.game, self.game.scene, radius=self.radius)
         self.random_placement()
         self.init_spot()
 
@@ -600,7 +609,7 @@ class Bloblet(BadGuy):
 
     def __init__(self, level, leader):
         super().__init__(level)
-        self.shape = Blobby(level.scene, radius=self._radius)
+        self.shape = Blobby(self.game, level.scene, radius=self._radius)
         self.radius = 15
 
         if leader:
@@ -781,27 +790,29 @@ class Shooter(ShooterBase):
     SMOKE_RATE = 100
 
     def smoke(self, dt):
-        self.level.scene.smoke.emit(
-            num=dt * self.SMOKE_RATE,
-            pos=Vector2D(self.shape.pos) - Polar2D(5, self.shape.angle),
-            vel_spread=30,
-            spin_spread=1,
-            size=8,
-            size_spread=3,
-            angle_spread=3,
-            color='#000000ff'
-        )
+        if self.game.use_particles:
+            self.level.scene.smoke.emit(
+                num=dt * self.SMOKE_RATE,
+                pos=Vector2D(self.shape.pos) - Polar2D(5, self.shape.angle),
+                vel_spread=30,
+                spin_spread=1,
+                size=8,
+                size_spread=3,
+                angle_spread=3,
+                color='#000000ff'
+            )
 
     def delete(self):
         self.level.shooters.discard(self)
         clock.unschedule(self.smoke)
-        self.level.scene.skulls.emit(
-            1,
-            pos=self.pos,
-            vel_spread=80,
-            spin_spread=1,
-            size=8,
-        )
+        if self.game.use_particles:
+            self.level.scene.skulls.emit(
+                1,
+                pos=self.pos,
+                vel_spread=80,
+                spin_spread=1,
+                size=8,
+            )
         super().delete()
 
     def make_shot(self):

@@ -105,29 +105,31 @@ class Bomb:
             # sparks stop ominously.
             return
 
-        self.scene.sparks.emit(
-            num=np.random.poisson(self.SMOKE_RATE * dt),
-            pos=self.sprite.pos,
-            vel_spread=30,
-            spin_spread=1,
-            size=3,
-            angle_spread=3,
-        )
+        if self.game.use_particles:
+            self.scene.sparks.emit(
+                num=np.random.poisson(self.SMOKE_RATE * dt),
+                pos=self.sprite.pos,
+                vel_spread=30,
+                spin_spread=1,
+                size=3,
+                angle_spread=3,
+            )
 
     def explode(self):
         self.scene.camera.screen_shake()
         self.level.objects.remove(self)
         self.sprite.delete()
         self.pos = self.sprite.pos
-        for pgroup in (self.scene.sparks,):
-            pgroup.emit(
-                num=100,
-                pos=self.pos,
-                vel_spread=200,
-                spin_spread=1,
-                size=8,
-                angle_spread=3,
-            )
+        if self.game.use_particles:
+            for pgroup in (self.scene.sparks,):
+                pgroup.emit(
+                    num=100,
+                    pos=self.pos,
+                    vel_spread=200,
+                    spin_spread=1,
+                    size=8,
+                    angle_spread=3,
+                )
         expl = self.scene.layers[1].add_sprite(
             'spark',
             pos=self.pos,
@@ -164,6 +166,7 @@ class Knight:
 
     def __init__(self, level, color=(1, 1, 1, 1)):
         self.level = level
+        self.game = level.game
         scene = self.scene = level.scene
         shield_sprite = scene.layers[Layers.ENTITIES].add_sprite('shield')
         sword_sprite = scene.layers[Layers.UPPER_EFFECTS].add_sprite('sword-gripped')
@@ -222,16 +225,17 @@ class Knight:
             num = np.random.poisson(distance * self.SMOKE_RATE)
             if num:
                 stern = self.pos - displacement.normalize() * 10
-                self.scene.smoke.emit(
-                    num=num,
-                    pos=stern,
-                    pos_spread=2,
-                    vel=displacement * 0.3,
-                    spin_spread=1,
-                    size=7,
-                    angle=self.knight.angle,
-                    angle_spread=3,
-                )
+                if self.game.use_particles:
+                    self.scene.smoke.emit(
+                        num=num,
+                        pos=stern,
+                        pos_spread=2,
+                        vel=displacement * 0.3,
+                        spin_spread=1,
+                        size=7,
+                        angle=self.knight.angle,
+                        angle_spread=3,
+                    )
 
             self.step += distance
 

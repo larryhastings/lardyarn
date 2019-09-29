@@ -26,8 +26,15 @@ class Game:
         self.frame = 0
         self.paused = False
 
-        if len(sys.argv) > 1:
-            self.new_game_level = sys.argv[1]
+        self.use_particles = True
+
+        argv = list(sys.argv)
+        if "--no-particles" in argv:
+            argv.remove("--no-particles")
+            self.use_particles = False
+
+        if len(argv) > 1:
+            self.new_game_level = argv[1]
         else:
             self.new_game_level = "title screen"
 
@@ -73,44 +80,45 @@ class Game:
             radius=10,
         )
 
-        smoke = scene.layers[Layers.LOWER_EFFECTS].add_particle_group(
-            texture='smoke',
-            grow=0.1,
-            max_age=0.8,
-            drag=0.1,
-        )
-        smoke.add_color_stop(0, '#888888ff')
-        smoke.add_color_stop(0.6, '#888888ff')
-        smoke.add_color_stop(0.8, '#88888800')
-        scene.smoke = smoke
+        if self.use_particles:
+            smoke = scene.layers[Layers.LOWER_EFFECTS].add_particle_group(
+                texture='smoke',
+                grow=0.1,
+                max_age=0.8,
+                drag=0.1,
+            )
+            smoke.add_color_stop(0, '#888888ff')
+            smoke.add_color_stop(0.6, '#888888ff')
+            smoke.add_color_stop(0.8, '#88888800')
+            scene.smoke = smoke
 
-        sparks = scene.layers[Layers.UPPER_EFFECTS].add_particle_group(
-            texture='spark',
-            grow=0.1,
-            max_age=0.6,
-            drag=0.7,
-        )
-        sparks.add_color_stop(0, (2, 2, 0.8, 1))
-        sparks.add_color_stop(0.3, (2, 1, 0, 1))
-        sparks.add_color_stop(0.6, (0, 0, 0, 0))
-        scene.sparks = sparks
+            sparks = scene.layers[Layers.UPPER_EFFECTS].add_particle_group(
+                texture='spark',
+                grow=0.1,
+                max_age=0.6,
+                drag=0.7,
+            )
+            sparks.add_color_stop(0, (2, 2, 0.8, 1))
+            sparks.add_color_stop(0.3, (2, 1, 0, 1))
+            sparks.add_color_stop(0.6, (0, 0, 0, 0))
+            scene.sparks = sparks
 
-        scene.bones = scene.layers[Layers.DEBRIS].add_particle_group(
-            texture='bone',
-            max_age=4,
-            drag=0.1,
-            spin_drag=0.4,
-        )
-        scene.skulls = scene.layers[Layers.DEBRIS].add_particle_group(
-            texture='skull',
-            max_age=4,
-            drag=0.1,
-            spin_drag=0.4,
-        )
-        for pgroup in (scene.bones, scene.skulls):
-            pgroup.add_color_stop(0, '#bbbbbbff')
-            pgroup.add_color_stop(1, '#bbbbbbff')
-            pgroup.add_color_stop(4, '#bbbbbb00')
+            scene.bones = scene.layers[Layers.DEBRIS].add_particle_group(
+                texture='bone',
+                max_age=4,
+                drag=0.1,
+                spin_drag=0.4,
+            )
+            scene.skulls = scene.layers[Layers.DEBRIS].add_particle_group(
+                texture='skull',
+                max_age=4,
+                drag=0.1,
+                spin_drag=0.4,
+            )
+            for pgroup in (scene.bones, scene.skulls):
+                pgroup.add_color_stop(0, '#bbbbbbff')
+                pgroup.add_color_stop(1, '#bbbbbbff')
+                pgroup.add_color_stop(4, '#bbbbbb00')
 
     def clear_scene(self):
         for layer in dir(Layers):
