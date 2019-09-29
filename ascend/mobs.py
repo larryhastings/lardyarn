@@ -133,6 +133,7 @@ class BombPowerup:
         player = self.level.player
         if self.collectable and (player.pos - self.sprite.pos).magnitude < 30:
             self.delete()
+            sounds.pickup.play()
             player.add_bomb()
 
     def delete(self):
