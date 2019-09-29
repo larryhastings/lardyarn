@@ -54,7 +54,7 @@ library by Dan Pope.
 
 ## Release History
 
-### v1.0.1
+### v1.0.2
 
 * Added invisible walls around the whole level to close up gaps,
   preventing monsters from spawning there, and hopefully also
