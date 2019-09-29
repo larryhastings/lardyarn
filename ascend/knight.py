@@ -79,7 +79,7 @@ class Bomb:
 
     def __init__(self, level, pos, vel):
         self.level = level
-        self.game = self.game
+        self.game = level.game
         self.scene = level.scene
         self.vel = vel
         self.sprite = self.scene.layers[0].add_sprite('bomb', pos=pos)
