@@ -602,6 +602,7 @@ def generate_level(level, *, left=None, mid=None, right=None, flip=False):
     if right is None:
         right = random.randrange(ENDS) + 1
 
+
     scene = level.scene
 
     l = 17
@@ -644,4 +645,25 @@ def generate_level(level, *, left=None, mid=None, right=None, flip=False):
         'stairs',
         pos=p2
     )
+
+    # add invisible walls outside the level
+    big_number = 400
+    inset_x = 10
+    inset_y = 30
+    wall_pairs = [
+        ( (-big_number, -big_number), (scene.width + big_number, inset_y) ),
+        ( (scene.width - inset_x, -big_number), (scene.width + big_number, scene.height + big_number) ),
+        ( (-big_number, scene.height - inset_y), (scene.width + big_number, scene.height + big_number) ),
+        ( (-big_number, -big_number), (inset_x, scene.height + big_number) ),
+        ]
+
+    for pairs in wall_pairs:
+        ul = Vector2D(pairs[0])
+        lr = Vector2D(pairs[1])
+        points = [(ul.x, ul.y), (lr.x, ul.y), (lr.x, lr.y), (ul.x, lr.y), ]
+
+        wall = Wall(level, points, visible=False)
+        walls.append(wall)
+
+
     level.build_spatial_hash()

@@ -56,6 +56,10 @@ library by Dan Pope.
 
 ### v1.0.1
 
+* Added invisible walls around the whole level to close up gaps,
+  preventing monsters from spawning there, and hopefully also
+  preventing the player from warping there when the framerate tanks.
+
 * Fixed bug: pressing the space bar always started a new game.
 
 * Added `--no-particles` command-line option.

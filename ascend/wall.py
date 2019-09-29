@@ -48,14 +48,15 @@ class Wall:
             self.layer = level.scene.layers[Layers.ENTITIES]
             self.shape = self.layer.add_polygon(
                 points,
-                color=(0.25, 0.25, 0.25),
+                # color=(0.25, 0.25, 0.25, 1),
+                color=(0.25, 2, 0.25, 1),
                 fill=True,
             )
         else:
             self.shape = self.layer = None
 
     def __repr__(self):
-        return f"<Wall {self.id} ({repr_float(self.upper_left.x)}, {repr_float(self.upper_left.y)} x ({repr_float(self.lower_right.x)}, {repr_float(self.lower_right.y)}>"
+        return f"<Wall {self.id} ({repr_float(self.upper_left.x)}, {repr_float(self.upper_left.y)}) x ({repr_float(self.lower_right.x)}, {repr_float(self.lower_right.y)})>"
 
     def delete(self):
         self.level.walls.remove(self)
